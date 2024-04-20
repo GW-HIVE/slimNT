@@ -118,7 +118,7 @@ process concatZip {
     path txt2
     
     output:
-    file 'slimNT.fna.gz'
+    file 'slimNT.db.gz'
     file 'missing_fna.txt'
     
     script:
