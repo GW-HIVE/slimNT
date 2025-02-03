@@ -8,7 +8,7 @@ mkdir -p "$OUTDIR/genomes"
 while IFS= read -r i; do
   if [ ! -f "$i.zip" ]; then
     for attempt in {1..3}; do
-      if ! curl -OJX GET "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/$i/download?include_annotation_type=GENOME_FASTA&filename=$i.zip" -H "Accept: application/zip"; then
+      if curl -OJX GET "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/$i/download?include_annotation_type=GENOME_FASTA&filename=$i.zip" -H "Accept: application/zip"; then
         break
       else
         sleep $((2**attempt * 50))
