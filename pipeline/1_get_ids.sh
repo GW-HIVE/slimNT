@@ -4,7 +4,8 @@ source "$(dirname "$0")/config.sh"
 
 logstepstart "Starting Step 1: Getting IDs"
 
-mkdir -p "$OUTDIR"
+mkdir -p "$OUTDIR/genomes"
+cd "$OUTDIR" || exit 1
 
 log "Downloading mapping file..."
 # Download and process mapping file
@@ -18,8 +19,5 @@ grep '^>' full_proteomes.txt | awk '{ sub(/^>/, ""); print $1 }' > ids.txt
 log "Creating mapped.db..."
 # Create mapped.db
 awk 'NR==FNR{a[$1];next} $1 in a {print $NF > "mapped.db"}' ids.txt mapping.txt
-
-# Move output to outdir
-mv mapped.db "$OUTDIR"
 
 log "Step 1 completed successfully"

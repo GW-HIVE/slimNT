@@ -8,7 +8,7 @@ mkdir -p "$OUTDIR/genomes"
 cd "$OUTDIR/genomes" || exit 1
 
 log "Beginning genome downloads..."
-total_genomes=$(wc -l < "../mapped.db")
+total_genomes=$(wc -l < "$OUTDIR/mapped.db")
 current=0
 
 # Read mapped.db and download genomes
@@ -29,7 +29,7 @@ while IFS= read -r i; do
       fi
     done
   fi
-done < "../mapped.db"
+done < "$OUTDIR/mapped.db"
 
 log "Extracting downloaded files..."
 # Extract files
