@@ -5,9 +5,10 @@ source "$(dirname "$0")/config.sh"
 logstepstart "Starting Step 2: Getting Genomes"
 
 mkdir -p "$OUTDIR/genomes"
+cd "$OUTDIR/genomes" || exit 1
 
 log "Beginning genome downloads..."
-total_genomes=$(wc -l < "$OUTDIR/mapped.db")
+total_genomes=$(wc -l < "../mapped.db")
 current=0
 
 # Read mapped.db and download genomes
@@ -28,7 +29,7 @@ while IFS= read -r i; do
       fi
     done
   fi
-done < "$OUTDIR/mapped.db"
+done < "../mapped.db"
 
 log "Extracting downloaded files..."
 # Extract files
