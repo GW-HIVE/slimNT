@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source config.sh
+source "$(dirname "$0")/config.sh"
 
 logstepstart "Starting Step 3: Getting Alternate IDs"
 
