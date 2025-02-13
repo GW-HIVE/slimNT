@@ -13,11 +13,11 @@ wget -qO - 'https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upi
 log "Combining proteome files..."
 # Combine proteome files and extract IDs
 cat <(wget -O - "${RPG75}") <(wget -O - "${VIRUS95}") > full_proteomes.txt
-grep '^>' full_proteomes.txt | awk '{ sub(/^>/, ""); print \$1 }' > ids.txt
+grep '^>' full_proteomes.txt | awk '{ sub(/^>/, ""); print $1 }' > ids.txt
 
 log "Creating mapped.db..."
 # Create mapped.db
-awk 'NR==FNR{a[\$1];next} \$1 in a {print \$NF > "mapped.db"}' ids.txt mapping.txt
+awk 'NR==FNR{a[$1];next} $1 in a {print $NF > "mapped.db"}' ids.txt mapping.txt
 
 # Move output to outdir
 mv mapped.db "$OUTDIR"
