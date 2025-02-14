@@ -8,14 +8,14 @@ mkdir -p "$OUTDIR/genomes"
 cd "$OUTDIR/genomes" || exit 1
 
 log "Beginning genome downloads..."
-total_genomes=$(wc -l < "$OUTDIR/mapped.db")
+total_genomes=$(wc -l < "../mapped.db")
 current=0
 failed_downloads=0
 
 # Create a download log
 exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
-exec 1>"$OUTDIR/logs/download_progress.log" 2>&1
+exec 1>"../../logs/download_progress.log" 2>&1
 
 # Read mapped.db and download genomes
 while IFS= read -r genome_id; do
@@ -53,7 +53,7 @@ while IFS= read -r genome_id; do
   if ((current % 100 == 0)); then
       log "Progress: $current/$total_genomes genomes processed ($failed_downloads failed)"
   fi
-done < "$OUTDIR/mapped.db"
+done < "../mapped.db"
 
 log "Download phase complete. Total: $total_genomes, Failed: $failed_downloads"
 
