@@ -25,29 +25,32 @@ while IFS= read -r genome_id; do
   log "Processing genome $current/$total_genomes: $genome_id"
 
   if [ ! -f "${genome_id}.zip" ]; then
-    for attempt in {1..3}; do
-      log "Download attempt $attempt for $genome_id"
+    log "File already exists for ${genome_id}, skipping"
+    continue
+  fi 
 
-      if curl -f -OJX GET "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/${genome_id}/download?include_annotation_type=GENOME_FASTA&filename=${genome_id}.zip" -H "Accept: application/zip" 2>&1; then
-        if [ -f "${genome_id}.zip" ] && [ -s "${genome_id}.zip" ]; then
-            log "Successfully downloaded ${genome_id}.zip"
-            break
-        else
-            log "Download appeared successful but file is missing or empty: ${genome_id}"
-            rm -f "${genome_id}.zip"
-        fi
+  for attempt in {1..3}; do
+    log "Download attempt $attempt for $genome_id"
+
+    if curl -f -OJX GET "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/${genome_id}/download?include_annotation_type=GENOME_FASTA&filename=${genome_id}.zip" -H "Accept: application/zip" 2>&1; then
+      if [ -f "${genome_id}.zip" ] && [ -s "${genome_id}.zip" ]; then
+          log "Successfully downloaded ${genome_id}.zip"
+          break
       else
-        log "Attempt $attempt failed, retrying in $((2**attempt * 50)) seconds..."
-        sleep $((2**attempt * 50))
-        if [ $attempt -eq 3 ]; then
-            log "Error: Failed all download attempts for: ${genome_id}"
-            echo "${genome_id}" >> failed_downloads.txt
-            ((failed_downloads++))
-            continue 2
-        fi
+          log "Download appeared successful but file is missing or empty: ${genome_id}"
+          rm -f "${genome_id}.zip"
       fi
-    done
-  fi
+    else
+      log "Attempt $attempt failed, retrying in $((2**attempt * 50)) seconds..."
+      sleep $((2**attempt * 50))
+      if [ $attempt -eq 3 ]; then
+          log "Error: Failed all download attempts for: ${genome_id}"
+          echo "${genome_id}" >> failed_downloads.txt
+          ((failed_downloads++))
+          continue 2
+      fi
+    fi
+  done
 
   # Progress update every 100 genomes
   if ((current % 100 == 0)); then
