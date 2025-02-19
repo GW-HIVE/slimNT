@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p tiny             # Partition to run in
+#SBATCH -p short            # Partition to run in
 #SBATCH -t 8:00:00          # Time limit (adjust as needed)
 #SBATCH --job-name=my_pipeline   # Job name
 #SBATCH --output=logs/job_%j.out   # Standard output log
