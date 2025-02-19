@@ -1,13 +1,14 @@
 #!/bin/bash
-#SBATCH -p short            # Partition to run in
-#SBATCH -t 8:00:00          # Time limit (adjust as needed)
-#SBATCH --job-name=my_pipeline   # Job name
-#SBATCH --output=logs/job_%j.out   # Standard output log
-#SBATCH --error=logs/job_%j.err    # Standard error log
+#SBATCH -p tiny            		# Partition to run in
+#SBATCH -t 4:00:00          		# Time limit (adjust as needed)
+#SBATCH --job-name=slimNT_pipeline   	# Job name
+#SBATCH --output=logs/job_%j.out   	# Standard output log
+#SBATCH --error=logs/job_%j.err    	# Standard error log
 
 set -e
 cd /scratch/hivelab/slimNT-sean/slimNT || exit 1
 
+chmod +x run_pipeline.sh
 chmod +x ./pipeline/*.sh
 
 echo "Pipeline started at $(date)"
