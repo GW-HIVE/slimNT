@@ -24,7 +24,7 @@ while IFS= read -r genome_id; do
 
   log "Processing genome $current/$total_genomes: $genome_id"
 
-  if [ ! -f "${genome_id}.zip" ]; then
+  if [ -f "${genome_id}.zip" ]; then
     log "File already exists for ${genome_id}, skipping"
     continue
   fi 
