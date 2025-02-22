@@ -15,7 +15,7 @@ failed_downloads=0
 # Create a download log
 exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
-exec 1>"../../logs/download_progress.log" 2>&1
+exec 1>"../../logs/2_download_progress.log" 2>&1
 
 # Read mapped.db and download genomes
 while IFS= read -r genome_id; do
@@ -45,7 +45,7 @@ while IFS= read -r genome_id; do
       sleep $((2**attempt * 50))
       if [ $attempt -eq 3 ]; then
           log "Error: Failed all download attempts for: ${genome_id}"
-          echo "${genome_id}" >> failed_downloads.txt
+          echo "${genome_id}" >> "../../logs/failed_downloads.txt"
           ((failed_downloads++))
           continue 2
       fi
@@ -58,24 +58,49 @@ while IFS= read -r genome_id; do
   fi
 done < "../mapped.db"
 
+# Restore stdout/stderr before changing logs
+exec 1>&3 2>&4
+
 log "Download phase complete. Total: $total_genomes, Failed: $failed_downloads"
 
 # Only proceed with extraction if we have zip files
 if ls *.zip 1> /dev/null 2>&1; then
+
     log "Extracting downloaded files..."
+
+    # Create a separate extraction log
+    exec 3>&1 4>&2
+    trap 'exec 2>&4 1>&3' 0 1 2 3
+    exec 1>"../../logs/2_extract_progress.log" 2>&1
+
     for zip_file in *.zip; do
+        log "Extracting: $zip_file"
+
+        # Skip extraction if the FNA file already exists and isn't empty
+        if [ -f "${genome_id}.fna" ] && [ -s "${genome_id}.fna" ]; then
+            log "FNA file already exists for ${genome_id}, skipping extraction"
+            continue
+        fi
+
         log "Extracting: $zip_file"
         if ! unzip -p "$zip_file" "*.fna" > "${zip_file%.zip}.fna"; then
             log "Error extracting file: $zip_file"
-            echo "${zip_file%.zip}" >> extraction_failed.txt
+            echo "${zip_file%.zip}" >> "../../logs/extraction_failed.txt"
             continue
         fi
     done
+
+    # Restore stdout/stderr
+    exec 1>&3 2>&4
 else
+    # Restore stdout/stderr
+    exec 1>&3 2>&4
+
     log "ERROR: No zip files found to extract"
     exit 1
 fi
 
+log "Extracting phase complete."
 log "Processing empty files..."
 find . -name "*.fna" -size 0 > empty_list.txt
 sed -i 's/^\.\///;s/\.fna$//' empty_list.txt
