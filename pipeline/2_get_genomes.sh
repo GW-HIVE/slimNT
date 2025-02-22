@@ -45,7 +45,7 @@ while IFS= read -r genome_id; do
       sleep $((2**attempt * 50))
       if [ $attempt -eq 3 ]; then
           log "Error: Failed all download attempts for: ${genome_id}"
-          echo "${genome_id}" >> "../../logs/failed_downloads.txt"
+          echo "${genome_id}" >> "../../logs/2_failed_downloads.txt"
           ((failed_downloads++))
           continue 2
       fi
@@ -85,7 +85,7 @@ if ls *.zip 1> /dev/null 2>&1; then
         log "Extracting: $zip_file"
         if ! unzip -p "$zip_file" "*.fna" > "${zip_file%.zip}.fna"; then
             log "Error extracting file: $zip_file"
-            echo "${zip_file%.zip}" >> "../../logs/extraction_failed.txt"
+            echo "${zip_file%.zip}" >> "../../logs/2_extraction_failed.txt"
             continue
         fi
     done
