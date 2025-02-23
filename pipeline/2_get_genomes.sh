@@ -74,20 +74,22 @@ if ls *.zip 1> /dev/null 2>&1; then
     exec 1>"../../logs/2_extract_progress.log" 2>&1
 
     for zip_file in *.zip; do
-        log "Extracting: $zip_file"
+        base_name="${zip_file%.zip}"
+        log "Processing: $zip_file"
 
         # Skip extraction if the FNA file already exists and isn't empty
-        if [ -f "${genome_id}.fna" ] && [ -s "${genome_id}.fna" ]; then
-            log "FNA file already exists for ${genome_id}, skipping extraction"
+        if [ -f "${base_name}.fna" ] && [ -s "${base_name}.fna" ]; then
+            log "FNA file already exists for ${base_name}, skipping extraction"
             continue
         fi
 
         log "Extracting: $zip_file"
-        if ! unzip -p "$zip_file" "*.fna" > "${zip_file%.zip}.fna"; then
+        if ! unzip -p "$zip_file" "*.fna" > "${base_name}.fna"; then
             log "Error extracting file: $zip_file"
-            echo "${zip_file%.zip}" >> "../../logs/2_extraction_failed.txt"
+            echo "${base_name}" >> "../../logs/2_extraction_failed.txt"
             continue
         fi
+        log "Successfully extracted ${base_name}.fna"
     done
 
     # Restore stdout/stderr
