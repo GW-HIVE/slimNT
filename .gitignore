@@ -1,5 +1,7 @@
 output/
 logs/
+tmp/
+job.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
