@@ -1,4 +1,5 @@
 output/
+output-old/
 logs/
 tmp/
 job.txt
