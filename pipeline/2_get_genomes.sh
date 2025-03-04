@@ -7,10 +7,17 @@ logstepstart "Starting Step 2: Getting Genomes"
 mkdir -p "$OUTDIR/genomes"
 cd "$OUTDIR/genomes" || exit 1
 
+# Get backup directory from env variable
+BACKUP_DIR="${BACKUP_DIR:-}"
+if [ -n "$BACKUP_DIR" ]; then
+  log "Using backup directory: $BACKUP_DIR"
+fi
+
 log "Beginning genome downloads..."
 total_genomes=$(wc -l < "../mapped.db")
 current=0
 failed_downloads=0
+copied_from_backup=0
 
 # Create a download log
 exec 3>&1 4>&2
@@ -28,6 +35,14 @@ while IFS= read -r genome_id; do
     log "File already exists for ${genome_id}, skipping"
     continue
   fi 
+
+  # Try to copy from backup directory first is specified
+  if [ -n "$BACKUP_DIR" ] && [ -f "$BACKUP_DIR/genomes/${genome_id}.zip" ]; then
+    log "Copying ${genome_id}.zip from backup directory"
+    cp "$BACKUP_DIR/genomes/${genome_id}.zip" .
+    ((copied_from_backup++))
+    continue
+  fi
 
   for attempt in {1..3}; do
     log "Download attempt $attempt for $genome_id"
@@ -61,7 +76,7 @@ done < "../mapped.db"
 # Restore stdout/stderr before changing logs
 exec 1>&3 2>&4
 
-log "Download phase complete. Total: $total_genomes, Failed: $failed_downloads"
+log "Download phase complete. Total: $total_genomes, Failed: $failed_downloads, Copied from backup: $copied_from_backup"
 
 # Only proceed with extraction if we have zip files
 if ls *.zip 1> /dev/null 2>&1; then
@@ -81,6 +96,13 @@ if ls *.zip 1> /dev/null 2>&1; then
         if [ -f "${base_name}.fna" ] && [ -s "${base_name}.fna" ]; then
             log "FNA file already exists for ${base_name}, skipping extraction"
             continue
+        fi
+
+        # Try to copy from backup directory if extraction fails
+        if [ -n "$BACKUP_DIR" ] && [ -f "$BACKUP_DIR/genomes/${base_name}.fna" ]; then
+          log "FNA file available in backup, copying ${base_name}.fna"
+          cp "$BACKUP_DIR/genomes/${base_name}.fna" .
+          continue
         fi
 
         log "Extracting: $zip_file"
