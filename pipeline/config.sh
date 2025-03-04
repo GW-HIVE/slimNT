@@ -13,4 +13,16 @@ log() {
 
 logstepstart() {
   log "-------------------- $* --------------------"
+  export STEP_START_TIME=$(date +%s)
+}
+
+logstepend() {
+  local end_time=$(date +%s)
+  local elapsed=$((end_time - STEP_START_TIME))
+  local hours=$((elapsed / 3600))
+  local minutes=$(( (elapsed % 3600) / 60 ))
+  local seconds=$((elapsed % 60))
+  
+  log "Step completed in ${hours}h ${minutes}m ${seconds}s"
+  log "$*"
 }

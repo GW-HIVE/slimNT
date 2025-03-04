@@ -58,4 +58,4 @@ log "Creating mapped.db..."
 # Create mapped.db
 awk 'NR==FNR{a[$1];next} $1 in a {print $NF > "mapped.db"}' ids.txt mapping.txt
 
-log "Step 1 completed successfully"
+logstepend "Step 1 completed successfully"

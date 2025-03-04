@@ -89,4 +89,4 @@ else
   log "No alternate genomes to process (alt_ids.txt is empty or missing)"
 fi
 
-log "Step 4 completed successfully"
+logstepend "Step 4 completed successfully"

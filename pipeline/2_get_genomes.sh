@@ -130,4 +130,4 @@ find . -name "*.fna" -size 0 > empty_list.txt
 sed -i 's/^\.\///;s/\.fna$//' empty_list.txt
 find . -name "*.fna" -size 0 -delete
 
-log "Step 2 completed with $failed_downloads failed downloads"
+logstepend "Step 2 completed with $failed_downloads failed downloads"

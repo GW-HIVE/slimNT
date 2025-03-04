@@ -18,4 +18,4 @@ cat genomes/*.fna > slimNT.db
 log "Compressing final database..."
 gzip slimNT.db
 
-log "Step 5 completed successfully"
+logstepend "Step 5 completed successfully"
