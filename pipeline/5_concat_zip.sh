@@ -13,9 +13,9 @@ cat genomes/empty_list.txt genomes/empty_list2.txt > missing_fna.txt
 
 log "Concatenating .fna files..."
 # Concatenate and compress
-cat genomes/*.fna > slimNT.db
+cat genomes/*.fna > slimNT.fa
 
 log "Compressing final database..."
-gzip slimNT.db
+gzip slimNT.fa
 
 logstepend "Step 5 completed successfully"
