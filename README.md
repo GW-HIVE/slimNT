@@ -18,10 +18,9 @@ UniProt provides a dataset that can be used to map proteome ids to their associa
 
 This version of slimNT was designed to be as diverse and robust as possible, and the highest cut-offs were selected (95% cut-off for viral RPGs including polyproteomes, and 75% cut-off for all others.)
 
-nextflow Pipeline
----
+## Pipeline
 
-![slimNT Pipeline](slimNT.pipeline.pdf)
+![slimNT Pipeline](./imgs/slimnt_pipeline.png)
 
 ### 1) getIds
 The process **getIds** downloads a mapping file from UniProt and parses out proteome ids and genome assembly ids for all selected proteomes. The viral and non-viral representative proteome list files are then downloaded from PIR and the selected representative proteomes are extracted. **getIds** then matches proteome and assembly ids and outputs a mapping file mapped.db. 
@@ -40,8 +39,3 @@ The process **getAlternateGenomes** takes the .txt output by **getAlternateIds**
 
 ### 5) concatZip
 The process **concatZip** takes all previously downloaded .fna files as input, concatenates and then compresses the concatenated database file. **concatZip** also takes the two .txt files containing genomes that were not successfully downloaded and combines them into a single list.
-
-
-###  Optional
-Eukaryotic genome file size can be prohibitive to a genomic database build. One strategy to help this is to build the database only using coding sequences for the majority of eukaryotic assemblies. Full genomes for common model organisms as well as specified organisms of interest should be used, but CDS files can be used for all others. This will decrease the overall database size, but the inclusion of coding sequences will ensure that organisms are still identified. The steps taken are similar to the steps outlined above, but additional file parsing steps must be taken to amend the fasta headers for cds files. After parsing is completed by the modified fasta files are moved to the same directory as other files, and all fasta files are concatenated and zipped. This process is not included in the **slimNT.nf** workflow, and the shell script **cds_orgs.sh** must be run separately. The output .gz database file from **cds_orgs.sh** can then be passed into the concatZip process of **slimNT.nf**
-
