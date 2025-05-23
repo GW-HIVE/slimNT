@@ -12,7 +12,10 @@ log "Downloading mapping file..."
 wget -qO - 'https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id%2Cgenome_assembly&format=tsv&query=%28*%29' | gzip -d > mapping.txt
 
 log "Creating whitelist of eukaryotes to include..."
-cat > eukaryotes_whitelist.txt << EOF
+WHITELIST_FILE="../eukaryotes_whitelist.txt"
+if [ ! -f "$WHITELIST_FILE" ]; then
+  log "Did not find whitelist file: creating default eukaryotes whitelist at $WHITELIST_FILE"
+  cat > "$WHITELIST_FILE" << EOF
 Caenorhabditis elegans
 Drosophila melanogaster
 Canis lupus
@@ -32,6 +35,10 @@ Pan troglodytes
 Bos taurus
 Sus scrofa
 EOF
+  log "Default whitelist created. You can edit $WHITELIST_FILE to customize organisms."
+  else
+    log "Using existing eukaryotes whitelist: $WHITELIST_FILE"
+fi
 
 log "Combining proteome files..."
 # Combine proteome files and extract IDs
@@ -44,9 +51,11 @@ grep -v "Euk/" full_proteomes.txt > non_eukaryotes.txt
 grep "Euk/" full_proteomes.txt > all_eukaryotes.txt
 
 # Process each whitelisted organism
+> whitelisted_eukaryotes.txt
 while IFS= read -r org; do
+  [[ -z "$org" || "$org" =~ ^[[:space:]]*# ]] && continue
   grep "$org" all_eukaryotes.txt >> whitelisted_eukaryotes.txt || true
-done < eukaryotes_whitelist.txt
+done < "$WHITELIST_FILE"
 
 # Combine the results
 cat non_eukaryotes.txt whitelisted_eukaryotes.txt > filtered_proteomes.txt
