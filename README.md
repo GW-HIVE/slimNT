@@ -44,3 +44,4 @@ The process **concatZip** takes all previously downloaded .fna files as input, c
 1. Gain access to the GW HPC Pegasus server. To gain access fill out the form on this [GW HPC help site](https://it.gwu.edu/high-performance-computing-access-request)
 2. Once you have access to this pegasus server and you are logged in, navigate to this filepath **/scratch/hivelab/slimNT-sean/slimNT**
 3. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh** in the command line.
+4. Use slurm commands to analyze the computation: squeue, sstat, or sacct
