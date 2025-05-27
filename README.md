@@ -39,3 +39,4 @@ The process **getAlternateGenomes** takes the .txt output by **getAlternateIds**
 
 ### 5) concatZip
 The process **concatZip** takes all previously downloaded .fna files as input, concatenates and then compresses the concatenated database file. **concatZip** also takes the two .txt files containing genomes that were not successfully downloaded and combines them into a single list.
+ 
