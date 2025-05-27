@@ -40,3 +40,7 @@ The process **getAlternateGenomes** takes the .txt output by **getAlternateIds**
 ### 5) concatZip
 The process **concatZip** takes all previously downloaded .fna files as input, concatenates and then compresses the concatenated database file. **concatZip** also takes the two .txt files containing genomes that were not successfully downloaded and combines them into a single list.
  
+# Steps to Run the Pipeline
+1. Gain access to the GW HPC Pegasus server. To gain access fill out the form on this [GW HPC help site](https://it.gwu.edu/high-performance-computing-access-request)
+2. Once you have access to this pegasus server and you are logged in, navigate to this filepath **/scratch/hivelab/slimNT-sean/slimNT**
+3. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh** in the command line.
