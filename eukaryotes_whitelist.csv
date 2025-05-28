@@ -21,7 +21,7 @@ Candida albicans (strain SC5314 / ATCC MYA-2876) (Yeast),UP000000559,GCA_0001829
 E coli K12,UP000000625,GCA_000005845.2,Bac/Gamma-proteo
 Shigella flexneri (301 / Serotype 2a),UP000001006,GCA_000006925.2,Bac/Gamma-proteo
 Cricetulus griseus,UP000001075,GCA_000223135.1,Euk/mammal
-Aspergillus fumigatus (strain ATCC MYA-4609 / CBS 101355 / FGSC A1100 / Af293) (Neosartorya fumigata),UP000002530,GCA_000002655.,Euk/Fungi-Metazoa
+Aspergillus fumigatus (strain ATCC MYA-4609 / CBS 101355 / FGSC A1100 / Af293) (Neosartorya fumigata),UP000002530,GCA_000002655,Euk/Fungi-Metazoa
 Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1),UP000002438,GCA_000006765.1,Bac/Gamma-proteo
 Pseudomonas syringae pv. tomato (strain ATCC BAA-871 / DC3000),UP000002515,GCA_000007805.1,Bac/Gamma-proteo
 Alkalihalophilus pseudofirmus (strain ATCC BAA-2126 / JCM 17055 / OF4) (Bacillus pseudofirmus),UP000001544,GCA_000005825.2,Bac/Firmicute
