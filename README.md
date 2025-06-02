@@ -45,3 +45,5 @@ The process **concatZip** takes all previously downloaded .fna files as input, c
 2. Once you have access to this pegasus server and you are logged in, navigate to this filepath **/scratch/hivelab/slimNT-sean/slimNT**
 3. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh** in the command line.
 4. Use slurm commands to analyze the computation: squeue, sstat, or sacct
+5. Genomes that did not map will be found in the file **missing_fna.txt** in this location: **/scratch/hivelab/slimNT-sean/slimNT/output**
+6. The output of this pipeline is **slimNT.fa** in the filepath: **/scratch/hivelab/slimNT/output-fa**
