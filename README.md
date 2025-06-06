@@ -43,7 +43,7 @@ The process **concatZip** takes all previously downloaded .fna files as input, c
 # Steps to Run the Pipeline
 1. Gain access to the GW HPC Pegasus server. To gain access fill out the form on this [GW HPC help site](https://it.gwu.edu/high-performance-computing-access-request)
 2. Once you have access to this pegasus server and you are logged in, navigate to this filepath **/scratch/hivelab/slimNT-sean/slimNT**
-3. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh** in the command line.
+3. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version 1.2436** in the command line.
 4. Use slurm commands to analyze the computation: squeue, sstat, or sacct
 5. Genomes that did not map will be found in the file **missing_fna.txt** in this location: **/scratch/hivelab/slimNT-sean/slimNT/output**
 6. The output of this pipeline is **slimNT.db.gz** in the filepath: **/scratch/hivelab/slimNT-sean/slimNT/output**
