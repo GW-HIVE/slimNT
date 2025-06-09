@@ -1,8 +1,8 @@
 # READ ME for Version Controlled and Separate Compression Files
 The slimNT pipeline has been updated to include version control and the ability to run the compression of the database separately from the rest of the pipeline.
-The steps to perform this piepline are in the maine page READ ME.
+The steps to perform this piepline are in the Main Page READ ME. They are also posted below.
 
-# Steps to Run the Pipeline
+## Steps to Run the Pipeline
 1. Gain access to the GW HPC Pegasus server. To gain access fill out the form on this [GW HPC help site](https://it.gwu.edu/high-performance-computing-access-request)
 2. Once you have access to this pegasus server and you are logged in, navigate to this filepath **/scratch/hivelab/slimNT-sean/slimNT**
 3. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version 1.2436** in the command line.
