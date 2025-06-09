@@ -39,6 +39,8 @@ The process **getAlternateGenomes** takes the .txt output by **getAlternateIds**
 
 ### 5) concatZip
 The process **concatZip** takes all previously downloaded .fna files as input, concatenates and then compresses the concatenated database file. **concatZip** also takes the two .txt files containing genomes that were not successfully downloaded and combines them into a single list.
+
+**Note:** The pipeline has been updated to include version control. These scripts can be found in the folder 'version controlled' under the pipeline folder in this GitHub. The scripts have also been updated to have the capability to compress the database separately from the rest of the pipeline. Those scripts will be found in the folder under 'separate compression' under the pipeline folder in this GitHub.
  
 # Steps to Run the Pipeline
 1. Gain access to the GW HPC Pegasus server. To gain access fill out the form on this [GW HPC help site](https://it.gwu.edu/high-performance-computing-access-request)
@@ -50,4 +52,10 @@ The process **concatZip** takes all previously downloaded .fna files as input, c
 7. The outputs of this pipeline is **slimNT_version.fa** and **slimNT_version.fa.gz** in the filepath: **/scratch/hivelab/slimNT-sean/slimNT/output**
 
 Note: If you are viewing the code scripts, make sure to use Nano or Cat. Vi hides the slurm controllers at the top of the scripts.
+
+## White List Capability
+The pipeline has the capability to take in a white list file of wanted additional organisms. This is is implemented and performed in the file for step 1, **1_get_ids.sh**. 
+- To create the white list, enter the names of the organisms of interest in a .txt file. Each name should be its own row, no commas or semi-colons, and no spaces after the name.
+- In line 16 in the script **1_get_ids.sh**, make sure that the name of your file is entered here and associated with the variable _WHITELIST_FILE_.
+- If a whitelist file was not given, a default list is there beginning at line 17. This default list can be updated as well. 
 
