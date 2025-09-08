@@ -65,10 +65,10 @@ The code scripts found in [version_and_separate_compression](https://github.com/
    - The version flag must be used in order to run the code successfully. The version number will appear after the _ in the filename ex : slimNT_##.fa . Letters as well as numbers are allowed to be used.
    - This is only applicable to the versioned code files. In order to run the regular slimNT (no white list and no version control) run the command **sbatch run_pipeline.sh**
 2. Use slurm commands to analyze and monitor the computation: squeue, sstat, or sacct
-3. Genomes that did not map will be found in the file **missing_fna.txt** in this location: **/scratch/hivelab/slimNT-sean/slimNT/output**
+3. Genomes that did not map will be found in the file **missing_fna.txt** in this location: **/slimNT/output**
 4. The database file, **slimNT_##.fa** is created from the run_pipeline.sh file. In order to compress the database file, use **run_compression.sh**:
     - sbatch run_compression.sh --version 1234
-5. The outputs of this pipeline is **slimNT_version.fa** and **slimNT_version.fa.gz** in the filepath: **/scratch/hivelab/slimNT-sean/slimNT/output**
+5. The outputs of this pipeline is **slimNT_version.fa** and **slimNT_version.fa.gz** in the filepath: **/slimNT/output**
 
 
 # Steps to Run the Pipeline on GW HPC
