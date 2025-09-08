@@ -41,8 +41,19 @@ The process **getAlternateGenomes** takes the .txt output by **getAlternateIds**
 The process **concatZip** takes all previously downloaded .fna files as input, concatenates and then compresses the concatenated database file. **concatZip** also takes the two .txt files containing genomes that were not successfully downloaded and combines them into a single list.
 
 **Note:** The pipeline has been updated to include version control. These scripts can be found in the folder 'version_and_separate_compression' under the pipeline folder in this GitHub. The scripts have also been updated to have the capability to compress the database separately from the rest of the pipeline. This script is step #6, **6_compress_files.sh**. Those updated scripts will be found in the folder under 'version_and_separate_compression' under the pipeline folder in this GitHub.
- 
-# Steps to Run the Pipeline
+
+# Steps to run slimNT
+The slimNT scripts can be found 
+1. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version 1.2436** in the command line.
+   - The version flag must be used in order to run the code successfully. The version number will appear after the _ in the filename ex : slimNT_##.fa
+2. Use slurm commands to analyze and monitor the computation: squeue, sstat, or sacct
+3. Genomes that did not map will be found in the file **missing_fna.txt** in this location: **/scratch/hivelab/slimNT-sean/slimNT/output**
+4. The database file, **slimNT_##.fa** is created from the run_pipeline.sh file. In order to compress the database file, use **run_compression.sh**:
+    - sbatch run_compression.sh --version 1234
+5. The outputs of this pipeline is **slimNT_version.fa** and **slimNT_version.fa.gz** in the filepath: **/scratch/hivelab/slimNT-sean/slimNT/output**
+
+
+# Steps to Run the Pipeline on GW HPC
 1. Gain access to the GW HPC Pegasus server. To gain access fill out the form on this [GW HPC help site](https://it.gwu.edu/high-performance-computing-access-request)
 2. Once you have access to this pegasus server and you are logged in, navigate to this filepath **/scratch/hivelab/slimNT-sean/slimNT**
 3. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version 1.2436** in the command line.
