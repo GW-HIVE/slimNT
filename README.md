@@ -43,7 +43,8 @@ The process **concatZip** takes all previously downloaded .fna files as input, c
 **Note:** The pipeline has been updated to include version control. These scripts can be found in the folder 'version_and_separate_compression' under the pipeline folder in this GitHub. The scripts have also been updated to have the capability to compress the database separately from the rest of the pipeline. This script is step #6, **6_compress_files.sh**. Those updated scripts will be found in the folder under 'version_and_separate_compression' under the pipeline folder in this GitHub.
 
 # Steps to run slimNT
-The slimNT scripts can be found 
+The slimNT scripts can be found in the [Pipeline](https://github.com/GW-HIVE/slimNT/tree/main/pipeline) folder. To not include a whitelist of organism (explained below), use the code scripts found in the root of the pipeline directory. To use whitelist capability and versioned files, the scripts are found in the folder [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/).
+
 1. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version 1.2436** in the command line.
    - The version flag must be used in order to run the code successfully. The version number will appear after the _ in the filename ex : slimNT_##.fa
 2. Use slurm commands to analyze and monitor the computation: squeue, sstat, or sacct
