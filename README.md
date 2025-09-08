@@ -6,6 +6,9 @@ The slimNT database is derived from Representative Proteome (RPs) and Reference 
 
 To ensure a portable, reproducible workflow, a nextflow pipeline was developed to aggregate and build the slimNT database. Detailed instructions to install nextflow can be found here https://www.nextflow.io/docs/latest/index.html. 
 
+## Contact Us
+To contact us about any questions or feedback, please email us at mazumder_lab@gwu.edu
+
 ## Data Collection
 
 A list of non-viral proteome ids are generated from PIR. Cut-off values of [(75%)](https://proteininformationresource.org/rps/data/current/75/rpg-75.txt), [(55%)](https://proteininformationresource.org/rps/data/current/55/rpg-55.txt), [(35%)](https://proteininformationresource.org/rps/data/current/35/rpg-35.txt), and [(15%)](https://proteininformationresource.org/rps/data/current/15/rpg-15.txt). These options will result in 18614, 11895, 6072, and 1989 RPGs respectively. 
@@ -28,7 +31,6 @@ The process **getIds** downloads a mapping file from UniProt and parses out prot
 ### 2) getGenomes
 The process **getGenomes** takes the mapped.db output of **getIds** as an input and downloads the assembly summary file from NCBI and extracts the FASTA genome assemblies. **getGenomes**  includes error handling steps, and will identify genomes that were not properly downloaded. This will account for broken urls that cause the download of a particular assembly to fail, but also in the event that the download is successful but the assembly summary file does not include a fasta file. **getGenomes** will output a directory of .fna files as well as a .txt file containing a list of all assembly Ids that were not successfully downloaded. 
 
-
 ### 3) getAlternateIds
 The process **getAlternateIds** downloads an assembly summary file from NCBI and extracts matched RefSeq and Genbank assembly ids. **getAlternateIds** then reads the .txt file of missing .fna files output by **getGenomes** and identifies the alternate assembly. For example, if an error occurs with a RefSeq assembly file, this process will identify the matched Genbank file. **getAlternateIds** outputs a .txt file containing a list of alternate assembly ids.
 
@@ -40,17 +42,23 @@ The process **getAlternateGenomes** takes the .txt output by **getAlternateIds**
 ### 5) concatZip
 The process **concatZip** takes all previously downloaded .fna files as input, concatenates and then compresses the concatenated database file. **concatZip** also takes the two .txt files containing genomes that were not successfully downloaded and combines them into a single list.
 
-**Note:** The pipeline has been updated to include version control. These scripts can be found in the folder 'version_and_separate_compression' under the pipeline folder in this GitHub. The scripts have also been updated to have the capability to compress the database separately from the rest of the pipeline. This script is step #6, **6_compress_files.sh**. Those updated scripts will be found in the folder under 'version_and_separate_compression' under the pipeline folder in this GitHub.
+#### Note:
+The pipeline has been updated to include _version control_. These scripts can be found in the folder [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/version_and_separate_compression) under the pipeline folder in this GitHub. The scripts have also been updated to have the capability to compress the database _separately_ from the rest of the pipeline to improve efficiency. This script is step #6, **6_compress_files.sh**. Those updated scripts will be found in the folder under 'version_and_separate_compression' under the pipeline folder in this GitHub.
 
-# Steps to run slimNT
-The slimNT scripts can be found in the [Pipeline](https://github.com/GW-HIVE/slimNT/tree/main/pipeline) folder. To not include a whitelist of organism (explained below), use the code scripts found in the root of the pipeline directory. To use whitelist capability and versioned files, the scripts are found in the folder [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/version_and_separate_compression).
+# Steps to Run slimNT
+The slimNT scripts can be found in the [Pipeline](https://github.com/GW-HIVE/slimNT/tree/main/pipeline) folder. The original files, no version control, use the code scripts found in the root of the pipeline directory. To use versioned files, the scripts are found in the folder [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/version_and_separate_compression). Whitelist capabaility (explained below) is embedded in both sets of the code. 
 
 ## Set up your environment
+The code scripts found in [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/version_and_separate_compression) is the recommended code to use. The original files can be used, but for documentation and efficiency purposes, the versioned code is recommended. 
+
 - On your server/HPC/local location please create a directory title **slimNT**. 
 - Navigate inside of this new directory. 
-- Inside slimNT, the files run_compression.sh and run_pipeline.sh should be added here. The README.sh file can also be included if you would like.
+- Inside slimNT, the files **run_compression.sh** and **run_pipeline.sh** should be added here. The README.sh file can also be included if you would like.
+      - run_compression.sh is used for the version controlled code. This is not needed for the original files.
 - Next, still inside the slimNT directory, these directories need to be created: logs, output, and pipeline.
-- Inside the new directory **pipeline** add code scripts 1-5 as well as the config.sh file. 
+- Inside the new directory **pipeline** add:
+   - For verion control and external compression file: add code scripts 1-6 as well as the config.sh file.
+   - For the original files: : add code scripts 1-5 as well as the config.sh file.
 
 ## Run the Pipeline
 1. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version 1.2436** in the command line.
