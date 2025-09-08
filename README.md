@@ -53,7 +53,7 @@ The code scripts found in [version_and_separate_compression](https://github.com/
 
 - On your server/HPC/local location please create a directory title **slimNT**. 
 - Navigate inside of this new directory. 
-- Inside slimNT, the files **run_compression.sh** and **run_pipeline.sh** should be added here. The README.sh file can also be included if you would like.
+- Inside slimNT, the files **run_compression.sh** and **run_pipeline.sh** should be added here. A text file (.txt) extension for the whitelist will also need to be added here. The file, named **eukaryotes_whitelist.txt**, can be downloaded from our GitHub to use. The README.sh file can also be included if you would like.
    * run_compression.sh is used for the version controlled code. This is not needed for the original files.
 - Next, still inside the slimNT directory, these directories need to be created: logs, output, and pipeline.
 - Inside the new directory **pipeline** add:
@@ -86,7 +86,10 @@ Note: If you are viewing the code scripts, make sure to use Nano or Cat. Vi hide
 
 ## White List Capability
 The pipeline has the capability to take in a white list file of wanted additional organisms. This is is implemented and performed in the file for step 1, **1_get_ids.sh**. 
-- To create the white list, enter the names of the organisms of interest in a .txt file. Each name should be its own row, no commas or semi-colons, and no spaces after the name.
+
+- To create the white list, enter the names of the organisms of interest in a .txt file. They should be in your slimNT directory you have created. Each name should be its own row, no commas or semi-colons, and no spaces after the name.
+   * The names should be the Organism name as it is found on UniProt. For example, if you want UP000000625 the name should be Escherichia coli (strain K12)
 - In line 16 in the script **1_get_ids.sh**, make sure that the name of your file is entered here and associated with the variable _WHITELIST_FILE_.
-- If a whitelist file was not given, a default list is there beginning at line 17. This default list can be updated as well. 
+- If a whitelist file was not given, a default list is there beginning at line 17. This default list can be updated as well.
+- If you create a new file, make sure the name of the text file matches would is in the code when it is being called. Right now it is listed as _eukaryotes_whitelist.txt_.
 
