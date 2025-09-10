@@ -57,8 +57,8 @@ The code scripts found in [version_and_separate_compression](https://github.com/
    * run_compression.sh is used for the version controlled code. This is not needed for the original files.
 - Next, still inside the slimNT directory, these directories need to be created: logs, output, and pipeline.
 - Inside the new directory **pipeline** add:
-   * For verion control and external compression file: add code scripts 1-6 as well as the config.sh file.
-   * For the original files: : add code scripts 1-5 as well as the config.sh file.
+   * For version control and external compression file: add code scripts 1-6 as well as the config.sh file.
+   * For the original files: add code scripts 1-5 as well as the config.sh file.
 
 ## Run the Pipeline
 1. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version ##** in the command line.
