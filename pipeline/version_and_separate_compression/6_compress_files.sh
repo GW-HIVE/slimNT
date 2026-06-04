@@ -11,7 +11,7 @@ cd "$OUTDIR" || exit 1
 log "Finding slimNT_${VERSION}.fa..."
 
 log "Compressing final database for slimNT_${VERSION}.fa..."
-gzip slimNT_${VERSION}.fa   #now has versioning capabilities
+gzip -k slimNT_${VERSION}.fa   #now has versioning capabilities
 
 logstepend "Step 6- Compression completed successfully"
 
