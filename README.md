@@ -21,6 +21,10 @@ UniProt provides a dataset that can be used to map proteome ids to their associa
 
 This version of slimNT was designed to be as diverse and robust as possible, and the highest cut-offs were selected (95% cut-off for viral RPGs including polyproteomes, and 75% cut-off for all others.)
 
+## Downloads
+- The current version of slimNT can be downloaded by clicking here: [slimNT v3_database](https://hive.biochemistry.gwu.edu/static/slimNT.fa.gz) (32.1GB compressed)
+- For [CensuScope](https://github.com/GW-HIVE/CensuScope/tree/main), an optional slimNT taxonomy can be used: - [slimNT taxonomy](https://hive.biochemistry.gwu.edu/static/slimNT.db.gz) (16.8GB)
+
 ## Pipeline
 
 ![slimNT Pipeline](./imgs/slimnt_pipeline.png)
