@@ -64,7 +64,27 @@ cat non_eukaryotes.txt whitelisted_eukaryotes.txt > filtered_proteomes.txt
 grep '^>' filtered_proteomes.txt | awk '{ sub(/^>/, ""); print $1 }' > ids.txt
 
 log "Creating mapped.db..."
-# Create mapped.db
-awk 'NR==FNR{a[$1];next} $1 in a {print $NF > "mapped.db"}' ids.txt mapping.txt
+# Create mapped.db, recording unmapped proteomes and assembly→upid reverse mapping.
+# Uses $4 explicitly (upid, organism, organism_id, genome_assembly) rather than $NF
+# to avoid picking up organism_id when the genome_assembly field is empty/absent.
+awk -F'\t' '
+  NR==FNR { seen[$1] = 0; next }
+  $1 in seen {
+    seen[$1] = 1
+    if ($4 != "") {
+      print $4 > "mapped.db"
+      print $4 "\t" $1 > "assembly_to_upid.txt"
+    } else {
+      print $1 > "unmapped_proteomes.txt"
+    }
+  }
+  END {
+    for (id in seen)
+      if (seen[id] == 0) print id >> "unmapped_proteomes.txt"
+  }
+' ids.txt mapping.txt
+
+unmapped_count=$(wc -l < "unmapped_proteomes.txt" 2>/dev/null || echo 0)
+log "$unmapped_count proteome(s) with no genome assembly written to unmapped_proteomes.txt"
 
 logstepend "Step 1 completed successfully"
