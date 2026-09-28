@@ -44,6 +44,16 @@ ENTREZ_EFETCH = (
 NCBI_DELAY = 0.35
 UNIPROT_DELAY = 0.3
 
+# Proteomes whose UniProt record has zero components (no nucleotide cross-references)
+# but whose sequences exist in NCBI nuccore under known accessions.
+# Add entries here if a future UPID hits the same dead end.
+MANUAL_ACCESSIONS: dict[str, list[str]] = {
+    # UP000101055: PERV-A has no UniProt components; sequences exist as standalone
+    # NCBI records. AF038600.1 is the accession called out by the target replication
+    # study; KY484771.1 was used in parallel studies.
+    "UP000101055": ["AF038600.1", "KY484771.1"],
+}
+
 
 def _api_key_param() -> str:
     key = os.environ.get("NCBI_API_KEY", "")
@@ -150,11 +160,18 @@ def recover_proteome(upid: str, outdir: Path, log_fh) -> bool:
               accessions_found=accessions, **summary)
 
     if not accessions:
-        log_event(log_fh, event="no_accessions", upid=upid,
-                  organism=summary.get("organism", ""),
-                  action="logged_for_investigation",
-                  note="No nucleotide accessions found in UniProt components")
-        return False
+        manual = MANUAL_ACCESSIONS.get(upid)
+        if manual:
+            log_event(log_fh, event="manual_accessions", upid=upid,
+                      accessions=manual,
+                      note="UniProt has no components; using hardcoded NCBI accessions")
+            accessions = manual
+        else:
+            log_event(log_fh, event="no_accessions", upid=upid,
+                      organism=summary.get("organism", ""),
+                      action="logged_for_investigation",
+                      note="No nucleotide accessions found in UniProt components")
+            return False
 
     # Step B: efetch each accession
     fasta_parts: list[str] = []

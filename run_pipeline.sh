@@ -18,7 +18,7 @@ done
 export BACKUP_DIR
 
 set -e
-cd /scratch/hivelab/slimNT-sean/slimNT || exit 1
+cd "$(dirname "$0")" || exit 1
 
 mkdir -p logs
 
@@ -33,5 +33,6 @@ echo "Using backup directory: ${BACKUP_DIR:-None}"
 ./pipeline/3_get_alternate_ids.sh
 ./pipeline/4_get_alternate_genomes.sh
 ./pipeline/5_concat_zip.sh
+./pipeline/6_fetch_fallback.sh
 
 echo "Pipeline completed at $(date)"
