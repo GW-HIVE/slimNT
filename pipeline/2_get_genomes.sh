@@ -22,7 +22,7 @@ copied_from_backup=0
 # Create a download log
 exec 3>&1 4>&2
 trap 'exec 2>&4 1>&3' 0 1 2 3
-exec 1>"../../logs/2_download_progress.log" 2>&1
+exec 1>"$LOGDIR/2_download_progress.log" 2>&1
 
 # Read mapped.db and download genomes
 while IFS= read -r genome_id; do
@@ -60,7 +60,7 @@ while IFS= read -r genome_id; do
       sleep $((2**attempt * 50))
       if [ $attempt -eq 3 ]; then
           log "Error: Failed all download attempts for: ${genome_id}"
-          echo "${genome_id}" >> "../../logs/2_failed_downloads.txt"
+          echo "${genome_id}" >> "$LOGDIR/2_failed_downloads.txt"
           ((failed_downloads++))
           continue 2
       fi
@@ -86,7 +86,7 @@ if ls *.zip 1> /dev/null 2>&1; then
     # Create a separate extraction log
     exec 3>&1 4>&2
     trap 'exec 2>&4 1>&3' 0 1 2 3
-    exec 1>"../../logs/2_extract_progress.log" 2>&1
+    exec 1>"$LOGDIR/2_extract_progress.log" 2>&1
 
     for zip_file in *.zip; do
         base_name="${zip_file%.zip}"
@@ -108,7 +108,7 @@ if ls *.zip 1> /dev/null 2>&1; then
         log "Extracting: $zip_file"
         if ! unzip -p "$zip_file" "*.fna" > "${base_name}.fna"; then
             log "Error extracting file: $zip_file"
-            echo "${base_name}" >> "../../logs/2_extraction_failed.txt"
+            echo "${base_name}" >> "$LOGDIR/2_extraction_failed.txt"
             continue
         fi
         log "Successfully extracted ${base_name}.fna"

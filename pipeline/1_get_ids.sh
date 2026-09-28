@@ -5,6 +5,9 @@ source "$(dirname "$0")/config.sh"
 logstepstart "Starting Step 1: Getting IDs"
 
 mkdir -p "$OUTDIR/genomes"
+
+WHITELIST_FILE="$(dirname "$0")/eukaryotes_whitelist.txt"
+
 cd "$OUTDIR" || exit 1
 
 log "Downloading mapping file..."
@@ -12,7 +15,6 @@ log "Downloading mapping file..."
 wget -qO - 'https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id%2Cgenome_assembly&format=tsv&query=%28*%29' | gzip -d > mapping.txt
 
 log "Creating whitelist of eukaryotes to include..."
-WHITELIST_FILE="../eukaryotes_whitelist.txt"
 if [ ! -f "$WHITELIST_FILE" ]; then
   log "Did not find whitelist file: creating default eukaryotes whitelist at $WHITELIST_FILE"
   cat > "$WHITELIST_FILE" << EOF

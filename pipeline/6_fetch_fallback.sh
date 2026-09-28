@@ -16,10 +16,10 @@ logstepstart "Starting Step 6: Nucleotide fallback retrieval"
 SCRIPT_DIR="$(dirname "$(dirname "$0")")/scripts"
 FALLBACK_PY="$SCRIPT_DIR/fetch_nucleotide_fallback.py"
 FALLBACK_DIR="$OUTDIR/fallback_genomes"
-LOG_FILE="../../logs/fallback_retrieval.jsonl"
+LOG_FILE="$LOGDIR/fallback_retrieval.jsonl"
 
 UNMAPPED="$OUTDIR/unmapped_proteomes.txt"
-FAILED_DL="../../logs/2_failed_downloads.txt"
+FAILED_DL="$LOGDIR/2_failed_downloads.txt"
 ASM_MAP="$OUTDIR/assembly_to_upid.txt"
 
 # Confirm at least one input source exists
@@ -63,6 +63,26 @@ if ls "$FALLBACK_DIR"/*.fna 1>/dev/null 2>&1; then
   log "Append complete."
 else
   log "No FNA files recovered — see $LOG_FILE for details."
+fi
+
+# Warn about step-4 failures that weren't routed through the nucleotide fallback.
+# These exist in their own log files but have no UPID mapping, so they can't be
+# automatically recovered — they need manual investigation (like PERV was).
+step4_warnings=0
+for f in "$LOGDIR/4_failed_downloads.txt" "$LOGDIR/4_extraction_failed.txt"; do
+  if [[ -s "$f" ]]; then
+    count=$(wc -l < "$f")
+    log "WARNING: $count unrecovered failure(s) in $f — not routed through nucleotide fallback (no UPID mapping for alternate assembly IDs). Review manually."
+    ((step4_warnings += count))
+  fi
+done
+if [[ -s "genomes/empty_list2.txt" ]]; then
+  count=$(wc -l < "genomes/empty_list2.txt")
+  log "WARNING: $count empty FNA(s) recorded in genomes/empty_list2.txt — alternate assembly downloads produced empty sequences. Review manually."
+  ((step4_warnings += count))
+fi
+if ((step4_warnings == 0)); then
+  log "No unrecovered step-4 failures detected."
 fi
 
 logstepend "Step 6 completed"

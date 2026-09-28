@@ -1,6 +1,13 @@
 #!/bin/bash
 
-OUTDIR="output"
+if [[ -z "${OUTDIR:-}" ]]; then
+  echo "ERROR: OUTDIR is not set. Run the pipeline via: run_pipeline.sh -o /path/to/output" >&2
+  exit 1
+fi
+
+LOGDIR="$OUTDIR/logs"
+mkdir -p "$LOGDIR"
+
 RPG75="https://proteininformationresource.org/rps/data/current/75/rpg-75.txt"
 RPG55="https://proteininformationresource.org/rps/data/current/55/rpg-55.txt"
 VIRUS95="https://proteininformationresource.org/download/rps/rpg_virus_all/current/rpg-95.txt"

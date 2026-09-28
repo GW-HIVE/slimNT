@@ -16,7 +16,7 @@ if [ -s alt_ids.txt ]; then
   # Set up download logging
   exec 3>&1 4>&2
   trap 'exec 2>&4 1>&3' 0 1 2 3
-  exec 1>"../../logs/4_download_progress.log" 2>&1
+  exec 1>"$LOGDIR/4_download_progress.log" 2>&1
 
   while IFS= read -r i; do
     ((current++))
@@ -34,7 +34,7 @@ if [ -s alt_ids.txt ]; then
 
     if ! curl -f -OJX GET "$url" -H "Accept: application/zip" 2>&1; then
       log "Failed to download: $i"
-      echo "$i" >> "../../logs/4_failed_downloads.txt"
+      echo "$i" >> "$LOGDIR/4_failed_downloads.txt"
       ((failed_downloads++))
       continue
     fi
@@ -52,7 +52,7 @@ if [ -s alt_ids.txt ]; then
     # Set up extraction logging
     exec 3>&1 4>&2
     trap 'exec 2>&4 1>&3' 0 1 2 3
-    exec 1>"../../logs/4_extract_progress.log" 2>&1
+    exec 1>"$LOGDIR/4_extract_progress.log" 2>&1
 
     for zip_file in *.zip; do
       genome_id="${zip_file%.zip}"
@@ -66,7 +66,7 @@ if [ -s alt_ids.txt ]; then
       log "Extracting: $zip_file"
       if ! unzip -p "$zip_file" "*.fna" > "${zip_file%.zip}.fna"; then
         log "Error extracting file: $zip_file"
-        echo "${zip_file%.zip}" >> "../../logs/4_extraction_failed.txt"
+        echo "${zip_file%.zip}" >> "$LOGDIR/4_extraction_failed.txt"
         continue
       fi
     done
