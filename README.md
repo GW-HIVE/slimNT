@@ -49,40 +49,34 @@ The pipeline has been updated to include _version control_. These scripts can be
 The slimNT scripts can be found in the [Pipeline](https://github.com/GW-HIVE/slimNT/tree/main/pipeline) folder. The original files, no version control, use the code scripts found in the root of the pipeline directory. To use versioned files, the scripts are found in the folder [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/version_and_separate_compression). Whitelist capabaility (explained below) is embedded in both sets of the code. 
 
 ## Set up your environment
-The code scripts found in [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/version_and_separate_compression) is the recommended code to use. The original files can be used, but for documentation and efficiency purposes, the versioned code is recommended. 
 
-- On your server/HPC/local location please create a directory title **slimNT**. 
-- Navigate inside of this new directory. 
-- Inside slimNT, the files **run_compression.sh** and **run_pipeline.sh** should be added here. A text file (.txt) extension for the whitelist will also need to be added here. The file, named **eukaryotes_whitelist.txt**, can be downloaded from our GitHub to use. The README.sh file can also be included if you would like.
-   * run_compression.sh is used for the version controlled code. This is not needed for the original files.
-- Next, still inside the slimNT directory, these directories need to be created: logs, output, and pipeline.
-- Inside the new directory **pipeline** add:
-   * For version control and external compression file: add code scripts 1-6 as well as the config.sh file.
-   * For the original files: add code scripts 1-5 as well as the config.sh file.
+Clone the repository and ensure the following are available on your `PATH`:
+
+- `bash` (4.0+)
+- `python3`
+- `wget`, `curl`
+- `gzip`, `unzip`
+
+You will need a destination directory with at least **500 GB** of free space for the output. The pipeline creates that directory (and all logs inside it) automatically.
 
 ## Run the Pipeline
-1. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version ##** in the command line.
-   - The version flag must be used in order to run the code successfully. The version number will appear after the _ in the filename ex : slimNT_##.fa . Letters as well as numbers are allowed to be used.
-   - This is only applicable to the versioned code files. In order to run the regular slimNT (no white list and no version control) run the command **sbatch run_pipeline.sh**
-2. Use slurm commands to analyze and monitor the computation: squeue, sstat, or sacct
-3. Genomes that did not map will be found in the file **missing_fna.txt** in this location: **/slimNT/output**
-4. The database file, **slimNT_##.fa** is created from the run_pipeline.sh file. In order to compress the database file, use **run_compression.sh**:
-    - sbatch run_compression.sh --version 1234
-5. The outputs of this pipeline is **slimNT_version.fa** and **slimNT_version.fa.gz** in the filepath: **/slimNT/output**
 
+```bash
+bash run_pipeline.sh -o /path/to/output
+```
 
-# Steps to Run the Pipeline on GW HPC
-1. Gain access to the GW HPC Pegasus server. To gain access fill out the form on this [GW HPC help site](https://it.gwu.edu/high-performance-computing-access-request)
-2. Once you have access to this pegasus server and you are logged in, navigate to this filepath **/scratch/hivelab/slimNT-sean/slimNT**
-3. To run the slimNT pipeline simply write the command **sbatch run_pipeline.sh --version 1.2436** in the command line.
-   - The version flag must be used in order to run the code successfully. The version number will appear after the _ in the filename ex : slimNT_##.fa
-5. Use slurm commands to analyze and monitor the computation: squeue, sstat, or sacct
-6. Genomes that did not map will be found in the file **missing_fna.txt** in this location: **/scratch/hivelab/slimNT-sean/slimNT/output**
-7. The database file, **slimNT_##.fa** is created from the run_pipeline.sh file. In order to compress the database file, use **run_compression.sh**:
-    - sbatch run_compression.sh --version 1234
-9. The outputs of this pipeline is **slimNT_version.fa** and **slimNT_version.fa.gz** in the filepath: **/scratch/hivelab/slimNT-sean/slimNT/output**
+Optional: provide a local backup directory of previously downloaded genome ZIPs to avoid re-downloading:
 
-Note: If you are viewing the code scripts, make sure to use Nano or Cat. Vi hides the slurm controllers at the top of the scripts.
+```bash
+bash run_pipeline.sh -o /path/to/output --backup-dir /path/to/backup
+```
+
+The pipeline validates write access and available disk space before starting, then runs all six steps in sequence. Progress is written to stdout; detailed per-step logs are written to `/path/to/output/logs/`.
+
+Outputs:
+- **`/path/to/output/slimNT.fa`** — concatenated genome FASTA
+- **`/path/to/output/missing_fna.txt`** — assembly IDs that could not be downloaded
+- **`/path/to/output/logs/fallback_retrieval.jsonl`** — structured log of nucleotide fallback attempts
 
 ## White List Capability
 The pipeline has the capability to take in a white list file of wanted additional organisms. This is is implemented and performed in the file for step 1, **1_get_ids.sh**. 
