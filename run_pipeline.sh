@@ -1,9 +1,4 @@
 #!/bin/bash
-#SBATCH -p tiny            		# Partition to run in
-#SBATCH -t 4:00:00          		# Time limit (adjust as needed)
-#SBATCH --job-name=slimNT_pipeline   	# Job name
-#SBATCH --output=logs/job_%j.out   	# Standard output log
-#SBATCH --error=logs/job_%j.err    	# Standard error log
 
 # Parse command line args
 BACKUP_DIR=""
