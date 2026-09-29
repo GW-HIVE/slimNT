@@ -52,6 +52,9 @@ MANUAL_ACCESSIONS: Dict[str, List[str]] = {
     # NCBI records. AF038600.1 is the accession called out by the target replication
     # study; KY484771.1 was used in parallel studies.
     "UP000101055": ["AF038600.1", "KY484771.1"],
+    # UP000259912: Human RSV B — UniProt has protein sequences (via UniParc) but no
+    # navigable genome assembly; JF920069.1 is the complete genome record in NCBI.
+    "UP000259912": ["JF920069.1"],
 }
 
 
