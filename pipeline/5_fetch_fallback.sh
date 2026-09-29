@@ -2,8 +2,10 @@
 # Step 5: Nucleotide fallback retrieval
 #
 # For proteomes that the main pipeline couldn't handle via NCBI genome assemblies:
-#   - unmapped_proteomes.txt  (no genome_assembly in UniProt → never reached mapped.db)
-#   - 2_failed_downloads.txt  (had an assembly accession but NCBI download failed)
+#   - unmapped_proteomes.txt    (no genome_assembly in UniProt → never reached mapped.db)
+#   - 2_failed_downloads.txt    (assembly accession existed but NCBI download failed)
+#   - 4_extraction_failed.txt   (ZIP downloaded but contained no *.fna — flat nucleotide
+#                                records like RSV/PERV stored outside assembly packages)
 #
 # Queries UniProt for nucleotide accessions and downloads via Entrez efetch.
 # Recovered .fna files are written to fallback_genomes/ for step 6 to concatenate.
@@ -20,34 +22,43 @@ LOG_FILE="$LOGDIR/fallback_retrieval.jsonl"
 
 UNMAPPED="$OUTDIR/unmapped_proteomes.txt"
 FAILED_DL="$LOGDIR/2_failed_downloads.txt"
+FAILED_EXT="$LOGDIR/4_extraction_failed.txt"
 ASM_MAP="$OUTDIR/assembly_to_upid.txt"
+COMBINED_ASMS="$LOGDIR/combined_failed_assemblies.txt"
 
 # Confirm at least one input source exists
 has_unmapped=false
-has_failed=false
-[[ -s "$UNMAPPED" ]]  && has_unmapped=true
-[[ -s "$FAILED_DL" ]] && has_failed=true
+has_asms=false
+[[ -s "$UNMAPPED" ]] && has_unmapped=true
+[[ -s "$FAILED_DL" || -s "$FAILED_EXT" ]] && has_asms=true
 
-if ! $has_unmapped && ! $has_failed; then
+if ! $has_unmapped && ! $has_asms; then
   log "No unmapped proteomes and no failed downloads — nothing to do."
   logstepend "Step 5 skipped (no fallback needed)"
   exit 0
 fi
 
 $has_unmapped && log "Unmapped proteomes: $(wc -l < "$UNMAPPED") entries"
-$has_failed   && log "Failed assembly downloads: $(wc -l < "$FAILED_DL") entries"
+
+# Merge assembly failure sources into one deduplicated list
+if $has_asms; then
+  if [[ ! -f "$ASM_MAP" ]]; then
+    log "WARNING: assembly failures exist but assembly_to_upid.txt is missing."
+    log "         Assembly fallback will be skipped. Re-run step 1 to regenerate it."
+    has_asms=false
+  else
+    > "$COMBINED_ASMS"
+    [[ -s "$FAILED_DL"  ]] && cat "$FAILED_DL"  >> "$COMBINED_ASMS"
+    [[ -s "$FAILED_EXT" ]] && cat "$FAILED_EXT" >> "$COMBINED_ASMS"
+    sort -u -o "$COMBINED_ASMS" "$COMBINED_ASMS"
+    log "Failed assembly accessions (downloads + extraction): $(wc -l < "$COMBINED_ASMS") entries"
+  fi
+fi
 
 # Build the argument list for the Python script
 ARGS=("--outdir" "$FALLBACK_DIR" "--log" "$LOG_FILE")
 $has_unmapped && ARGS+=("--upids" "$UNMAPPED")
-if $has_failed; then
-  if [[ ! -f "$ASM_MAP" ]]; then
-    log "WARNING: 2_failed_downloads.txt exists but assembly_to_upid.txt is missing."
-    log "         Failed-assembly fallback will be skipped. Re-run step 1 to regenerate it."
-  else
-    ARGS+=("--assemblies" "$FAILED_DL" "--assembly-map" "$ASM_MAP")
-  fi
-fi
+$has_asms     && ARGS+=("--assemblies" "$COMBINED_ASMS" "--assembly-map" "$ASM_MAP")
 
 log "Running nucleotide fallback script..."
 cd "$OUTDIR" || exit 1
@@ -60,24 +71,9 @@ else
   log "No FNA files recovered — see $LOG_FILE for details."
 fi
 
-# Warn about step-4 failures that weren't routed through the nucleotide fallback.
-# These exist in their own log files but have no UPID mapping, so they can't be
-# automatically recovered — they need manual investigation (like PERV was).
-step4_warnings=0
-for f in "$LOGDIR/4_failed_downloads.txt" "$LOGDIR/4_extraction_failed.txt"; do
-  if [[ -s "$f" ]]; then
-    count=$(wc -l < "$f")
-    log "WARNING: $count unrecovered failure(s) in $f — not routed through nucleotide fallback (no UPID mapping for alternate assembly IDs). Review manually."
-    ((step4_warnings += count))
-  fi
-done
 if [[ -s "genomes/empty_list2.txt" ]]; then
   count=$(wc -l < "genomes/empty_list2.txt")
-  log "WARNING: $count empty FNA(s) recorded in genomes/empty_list2.txt — alternate assembly downloads produced empty sequences. Review manually."
-  ((step4_warnings += count))
-fi
-if ((step4_warnings == 0)); then
-  log "No unrecovered step-4 failures detected."
+  log "WARNING: $count empty FNA(s) in genomes/empty_list2.txt — alternate assembly downloads produced empty sequences. Review manually."
 fi
 
 logstepend "Step 5 completed"
