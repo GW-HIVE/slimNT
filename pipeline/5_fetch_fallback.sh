@@ -1,17 +1,17 @@
 #!/bin/bash
-# Step 6: Nucleotide fallback retrieval
+# Step 5: Nucleotide fallback retrieval
 #
 # For proteomes that the main pipeline couldn't handle via NCBI genome assemblies:
 #   - unmapped_proteomes.txt  (no genome_assembly in UniProt → never reached mapped.db)
 #   - 2_failed_downloads.txt  (had an assembly accession but NCBI download failed)
 #
 # Queries UniProt for nucleotide accessions and downloads via Entrez efetch.
-# Successfully recovered sequences are appended to the main slimNT FASTA.
+# Recovered .fna files are written to fallback_genomes/ for step 6 to concatenate.
 # All failures are logged to logs/fallback_retrieval.jsonl for later investigation.
 
 source "$(dirname "$0")/config.sh"
 
-logstepstart "Starting Step 6: Nucleotide fallback retrieval"
+logstepstart "Starting Step 5: Nucleotide fallback retrieval"
 
 SCRIPT_DIR="$(cd "$(dirname "$(dirname "$0")")" && pwd)/scripts"
 FALLBACK_PY="$SCRIPT_DIR/fetch_nucleotide_fallback.py"
@@ -30,7 +30,7 @@ has_failed=false
 
 if ! $has_unmapped && ! $has_failed; then
   log "No unmapped proteomes and no failed downloads — nothing to do."
-  logstepend "Step 6 skipped (no fallback needed)"
+  logstepend "Step 5 skipped (no fallback needed)"
   exit 0
 fi
 
@@ -53,20 +53,9 @@ log "Running nucleotide fallback script..."
 cd "$OUTDIR" || exit 1
 python3 "$FALLBACK_PY" "${ARGS[@]}"
 
-# Append recovered FNA files to the main concatenated FASTA (if it already exists)
 if ls "$FALLBACK_DIR"/*.fna 1>/dev/null 2>&1; then
   recovered=$(ls "$FALLBACK_DIR"/*.fna | wc -l)
-  log "Recovered $recovered FNA file(s). Appending to main slimNT FASTA..."
-  if [[ -f slimNT.fa.gz ]]; then
-    for fna in "$FALLBACK_DIR"/*.fna; do
-      [[ -s "$fna" ]] && gzip -c "$fna" >> slimNT.fa.gz
-    done
-  else
-    for fna in "$FALLBACK_DIR"/*.fna; do
-      [[ -s "$fna" ]] && cat "$fna" >> slimNT.fa
-    done
-  fi
-  log "Append complete."
+  log "Recovered $recovered FNA file(s) — step 6 will include them in the final FASTA."
 else
   log "No FNA files recovered — see $LOG_FILE for details."
 fi
@@ -91,4 +80,4 @@ if ((step4_warnings == 0)); then
   log "No unrecovered step-4 failures detected."
 fi
 
-logstepend "Step 6 completed"
+logstepend "Step 5 completed"
