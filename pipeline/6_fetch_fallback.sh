@@ -13,7 +13,7 @@ source "$(dirname "$0")/config.sh"
 
 logstepstart "Starting Step 6: Nucleotide fallback retrieval"
 
-SCRIPT_DIR="$(dirname "$(dirname "$0")")/scripts"
+SCRIPT_DIR="$(cd "$(dirname "$(dirname "$0")")" && pwd)/scripts"
 FALLBACK_PY="$SCRIPT_DIR/fetch_nucleotide_fallback.py"
 FALLBACK_DIR="$OUTDIR/fallback_genomes"
 LOG_FILE="$LOGDIR/fallback_retrieval.jsonl"
@@ -57,9 +57,15 @@ python3 "$FALLBACK_PY" "${ARGS[@]}"
 if ls "$FALLBACK_DIR"/*.fna 1>/dev/null 2>&1; then
   recovered=$(ls "$FALLBACK_DIR"/*.fna | wc -l)
   log "Recovered $recovered FNA file(s). Appending to main slimNT FASTA..."
-  for fna in "$FALLBACK_DIR"/*.fna; do
-    [[ -s "$fna" ]] && cat "$fna" >> slimNT.fa
-  done
+  if [[ -f slimNT.fa.gz ]]; then
+    for fna in "$FALLBACK_DIR"/*.fna; do
+      [[ -s "$fna" ]] && gzip -c "$fna" >> slimNT.fa.gz
+    done
+  else
+    for fna in "$FALLBACK_DIR"/*.fna; do
+      [[ -s "$fna" ]] && cat "$fna" >> slimNT.fa
+    done
+  fi
   log "Append complete."
 else
   log "No FNA files recovered — see $LOG_FILE for details."
