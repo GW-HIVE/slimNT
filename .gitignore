@@ -4,6 +4,7 @@ output-old/
 logs/
 tmp/
 job.txt
+claude-sessions/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
