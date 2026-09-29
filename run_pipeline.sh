@@ -50,7 +50,7 @@ echo "Using backup directory: ${BACKUP_DIR:-None}"
 ./pipeline/2_get_genomes.sh
 ./pipeline/3_get_alternate_ids.sh
 ./pipeline/4_get_alternate_genomes.sh
-./pipeline/5_concat_zip.sh
-./pipeline/6_fetch_fallback.sh
+./pipeline/5_fetch_fallback.sh
+./pipeline/6_concat_zip.sh
 
 echo "Pipeline completed at $(date)"
