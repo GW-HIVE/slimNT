@@ -31,7 +31,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional, Set, Tuple
 
 
 UNIPROT_PROTEOME = "https://rest.uniprot.org/proteomes/{upid}?format=json"
@@ -47,7 +47,7 @@ UNIPROT_DELAY = 0.3
 # Proteomes whose UniProt record has zero components (no nucleotide cross-references)
 # but whose sequences exist in NCBI nuccore under known accessions.
 # Add entries here if a future UPID hits the same dead end.
-MANUAL_ACCESSIONS: dict[str, list[str]] = {
+MANUAL_ACCESSIONS: Dict[str, List[str]] = {
     # UP000101055: PERV-A has no UniProt components; sequences exist as standalone
     # NCBI records. AF038600.1 is the accession called out by the target replication
     # study; KY484771.1 was used in parallel studies.
@@ -78,7 +78,7 @@ def log_event(log_fh, **fields) -> None:
 
 # ── UniProt lookup ────────────────────────────────────────────────────────────
 
-def get_nucleotide_accessions(upid: str) -> tuple[list[str], dict]:
+def get_nucleotide_accessions(upid: str) -> Tuple[List[str], dict]:
     """
     Query UniProt proteomes API and extract nucleotide accessions.
     Returns (accessions, raw_data_subset) for logging.
@@ -87,7 +87,7 @@ def get_nucleotide_accessions(upid: str) -> tuple[list[str], dict]:
     raw = _fetch(url)
     data = json.loads(raw)
 
-    accessions: list[str] = []
+    accessions: List[str] = []
 
     for component in data.get("components", []):
         # Pattern 1: genomeAccession is a list of strings or dicts
@@ -108,7 +108,7 @@ def get_nucleotide_accessions(upid: str) -> tuple[list[str], dict]:
                 accessions.append(acc)
 
     # Deduplicate, preserve order
-    seen: set[str] = set()
+    seen: Set[str] = set()
     unique = [a for a in accessions if not (a in seen or seen.add(a))]  # type: ignore[func-returns-value]
 
     summary = {
@@ -174,7 +174,7 @@ def recover_proteome(upid: str, outdir: Path, log_fh) -> bool:
             return False
 
     # Step B: efetch each accession
-    fasta_parts: list[str] = []
+    fasta_parts: List[str] = []
     for acc in accessions:
         try:
             time.sleep(NCBI_DELAY)
@@ -204,14 +204,14 @@ def recover_proteome(upid: str, outdir: Path, log_fh) -> bool:
 
 # ── Input helpers ─────────────────────────────────────────────────────────────
 
-def load_upids(path: str) -> list[str]:
+def load_upids(path: str) -> List[str]:
     return [l.strip() for l in Path(path).read_text().splitlines()
             if l.strip() and not l.startswith("#")]
 
 
-def load_assembly_map(path: str) -> dict[str, str]:
+def load_assembly_map(path: str) -> Dict[str, str]:
     """Load assembly_to_upid.txt → {assembly: upid}."""
-    mapping: dict[str, str] = {}
+    mapping: Dict[str, str] = {}
     for line in Path(path).read_text().splitlines():
         parts = line.strip().split("\t")
         if len(parts) == 2:
@@ -252,7 +252,7 @@ def main() -> None:
     Path(args.log).parent.mkdir(parents=True, exist_ok=True)
 
     # Collect UPIDs from both sources
-    upids: list[str] = []
+    upids: List[str] = []
     if args.upids:
         upids.extend(load_upids(args.upids))
 
@@ -266,7 +266,7 @@ def main() -> None:
                 print(f"WARNING: no UPID found for assembly {asm!r} — skipping", file=sys.stderr)
 
     # Deduplicate, preserving order
-    seen: set[str] = set()
+    seen: Set[str] = set()
     upids = [u for u in upids if not (u in seen or seen.add(u))]  # type: ignore[func-returns-value]
 
     if not upids:

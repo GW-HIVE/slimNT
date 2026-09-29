@@ -19,8 +19,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass, field
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
 
 UNIPROT_API = "https://rest.uniprot.org/proteomes/{upid}?format=json"
@@ -46,15 +45,16 @@ DEFAULT_IDS = {
 }
 
 
-@dataclass
 class ProteomeResult:
-    upid: str
-    label: str
-    uniprot_found: bool = False
-    genome_assembly: Optional[str] = None
-    ncbi_found: Optional[bool] = None
-    ncbi_fasta_available: Optional[bool] = None
-    error: Optional[str] = None
+    def __init__(self, upid, label, uniprot_found=False, genome_assembly=None,
+                 ncbi_found=None, ncbi_fasta_available=None, error=None):
+        self.upid = upid
+        self.label = label
+        self.uniprot_found = uniprot_found
+        self.genome_assembly = genome_assembly
+        self.ncbi_found = ncbi_found
+        self.ncbi_fasta_available = ncbi_fasta_available
+        self.error = error
 
 
 def fetch_json(url: str, timeout: int = 15) -> Optional[dict]:
@@ -70,7 +70,7 @@ def fetch_json(url: str, timeout: int = 15) -> Optional[dict]:
         raise RuntimeError(str(e)) from e
 
 
-def check_uniprot(upid: str) -> tuple[bool, Optional[str]]:
+def check_uniprot(upid: str) -> Tuple[bool, Optional[str]]:
     """Return (found, genome_assembly_accession_or_None)."""
     data = fetch_json(UNIPROT_API.format(upid=upid))
     if data is None:
@@ -81,7 +81,7 @@ def check_uniprot(upid: str) -> tuple[bool, Optional[str]]:
     return True, acc
 
 
-def check_ncbi(acc: str) -> tuple[bool, bool]:
+def check_ncbi(acc: str) -> Tuple[bool, bool]:
     """Return (assembly_exists, fasta_available)."""
     data = fetch_json(NCBI_CHECK.format(acc=acc))
     if data is None:
@@ -97,9 +97,9 @@ def check_ncbi(acc: str) -> tuple[bool, bool]:
     return True, False
 
 
-def parse_rpg(path: str, pattern: Optional[str]) -> dict[str, str]:
+def parse_rpg(path: str, pattern: Optional[str]) -> Dict[str, str]:
     """Extract seed ('>') proteome IDs from an rpg file, optionally filtered by regex."""
-    ids: dict[str, str] = {}
+    ids: Dict[str, str] = {}
     rx = re.compile(pattern, re.IGNORECASE) if pattern else None
     with open(path) as fh:
         for line in fh:
@@ -114,7 +114,7 @@ def parse_rpg(path: str, pattern: Optional[str]) -> dict[str, str]:
     return ids
 
 
-def run(ids: dict[str, str], delay: float = 0.3) -> list[ProteomeResult]:
+def run(ids: Dict[str, str], delay: float = 0.3) -> List[ProteomeResult]:
     results = []
     total = len(ids)
     for i, (upid, label) in enumerate(ids.items(), 1):
@@ -132,7 +132,7 @@ def run(ids: dict[str, str], delay: float = 0.3) -> list[ProteomeResult]:
     return results
 
 
-def print_report(results: list[ProteomeResult]) -> None:
+def print_report(results: List[ProteomeResult]) -> None:
     col = "{:<14} {:<45} {:<12} {:<20} {:<12} {:<14} {}"
     header = col.format(
         "UPID", "Label", "UniProt?", "genome_assembly", "NCBI?", "FASTA avail?", "Notes"
