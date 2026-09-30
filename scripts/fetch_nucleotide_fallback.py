@@ -45,16 +45,15 @@ NCBI_DELAY = 0.35
 UNIPROT_DELAY = 0.3
 
 # Proteomes whose UniProt record has zero components (no nucleotide cross-references)
-# but whose sequences exist in NCBI nuccore under known accessions.
-# Add entries here if a future UPID hits the same dead end.
+# but whose sequences exist in NCBI nuccore under known accessions. Use this for
+# UPIDs that DO enter the pipeline via PIR lists but have no UniProt nucleotide links.
+# For UPIDs absent from PIR entirely, put them (with accessions) in
+# pipeline/supplemental_upids.txt instead.
 MANUAL_ACCESSIONS: Dict[str, List[str]] = {
     # UP000101055: PERV-A has no UniProt components; sequences exist as standalone
     # NCBI records. AF038600.1 is the accession called out by the target replication
     # study; KY484771.1 was used in parallel studies.
     "UP000101055": ["AF038600.1", "KY484771.1"],
-    # UP000259912: Human RSV B — UniProt has protein sequences (via UniParc) but no
-    # navigable genome assembly; JF920069.1 is the complete genome record in NCBI.
-    "UP000259912": ["JF920069.1"],
 }
 
 
@@ -135,7 +134,8 @@ def fetch_fasta(accession: str) -> str:
 
 # ── Per-proteome orchestration ────────────────────────────────────────────────
 
-def recover_proteome(upid: str, outdir: Path, log_fh) -> bool:
+def recover_proteome(upid: str, outdir: Path, log_fh,
+                     manual_accessions: Dict[str, List[str]]) -> bool:
     """
     Full recovery attempt for one proteome ID.
     Returns True if at least one sequence was written.
@@ -163,11 +163,11 @@ def recover_proteome(upid: str, outdir: Path, log_fh) -> bool:
               accessions_found=accessions, **summary)
 
     if not accessions:
-        manual = MANUAL_ACCESSIONS.get(upid)
+        manual = manual_accessions.get(upid)
         if manual:
             log_event(log_fh, event="manual_accessions", upid=upid,
                       accessions=manual,
-                      note="UniProt has no components; using hardcoded NCBI accessions")
+                      note="UniProt has no components; using known NCBI accessions")
             accessions = manual
         else:
             log_event(log_fh, event="no_accessions", upid=upid,
@@ -212,6 +212,23 @@ def load_upids(path: str) -> List[str]:
             if l.strip() and not l.startswith("#")]
 
 
+def load_supplemental_accessions(path: str) -> Dict[str, List[str]]:
+    """Parse supplemental_upids.txt for lines that carry accessions.
+    Format: <UPID>  <acc1>[,<acc2>...]  (second column optional)
+    Returns only entries that have at least one accession."""
+    result: Dict[str, List[str]] = {}
+    for line in Path(path).read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) >= 2:
+            accessions = [a for a in parts[1].split(",") if a]
+            if accessions:
+                result[parts[0]] = accessions
+    return result
+
+
 def load_assembly_map(path: str) -> Dict[str, str]:
     """Load assembly_to_upid.txt → {assembly: upid}."""
     mapping: Dict[str, str] = {}
@@ -237,6 +254,9 @@ def main() -> None:
                         help="Directory for recovered .fna files (default: output/fallback_genomes)")
     parser.add_argument("--log", metavar="FILE", default="logs/fallback_retrieval.jsonl",
                         help="JSON-lines log path (default: logs/fallback_retrieval.jsonl)")
+    parser.add_argument("--supplemental", metavar="FILE",
+                        help="supplemental_upids.txt — UPIDs with accessions in column 2 "
+                             "are added to the manual accession lookup")
     parser.add_argument("--delay", type=float, default=None,
                         help="Override inter-request delay in seconds")
     args = parser.parse_args()
@@ -249,6 +269,14 @@ def main() -> None:
     global NCBI_DELAY, UNIPROT_DELAY
     if args.delay is not None:
         NCBI_DELAY = UNIPROT_DELAY = args.delay
+
+    manual_accessions = dict(MANUAL_ACCESSIONS)
+    if args.supplemental and Path(args.supplemental).exists():
+        from_suppl = load_supplemental_accessions(args.supplemental)
+        manual_accessions.update(from_suppl)
+        if from_suppl:
+            print(f"Loaded {len(from_suppl)} accession mapping(s) from supplemental file",
+                  file=sys.stderr)
 
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
@@ -284,7 +312,7 @@ def main() -> None:
                   outdir=str(outdir))
         for i, upid in enumerate(upids, 1):
             print(f"  [{i}/{len(upids)}] {upid}", file=sys.stderr)
-            if recover_proteome(upid, outdir, log_fh):
+            if recover_proteome(upid, outdir, log_fh, manual_accessions):
                 recovered += 1
         log_event(log_fh, event="session_end",
                   total=len(upids), recovered=recovered,
