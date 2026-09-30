@@ -56,9 +56,11 @@ if $has_asms; then
 fi
 
 # Build the argument list for the Python script
+SUPPL_FILE="$(dirname "$0")/supplemental_upids.txt"
 ARGS=("--outdir" "$FALLBACK_DIR" "--log" "$LOG_FILE")
 $has_unmapped && ARGS+=("--upids" "$UNMAPPED")
 $has_asms     && ARGS+=("--assemblies" "$COMBINED_ASMS" "--assembly-map" "$ASM_MAP")
+[[ -f "$SUPPL_FILE" ]] && ARGS+=("--supplemental" "$SUPPL_FILE")
 
 log "Running nucleotide fallback script..."
 cd "$OUTDIR" || exit 1
