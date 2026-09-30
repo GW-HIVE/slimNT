@@ -62,8 +62,18 @@ done < "$WHITELIST_FILE"
 # Combine the results
 cat non_eukaryotes.txt whitelisted_eukaryotes.txt > filtered_proteomes.txt
 
-# Extract IDs from filtered proteomes 
+# Extract IDs from filtered proteomes
 grep '^>' filtered_proteomes.txt | awk '{ sub(/^>/, ""); print $1 }' > ids.txt
+
+# Append supplemental UPIDs not covered by PIR reference lists
+SUPPL_FILE="$(dirname "$0")/supplemental_upids.txt"
+if [[ -f "$SUPPL_FILE" ]]; then
+  suppl=$(grep -v '^\s*#' "$SUPPL_FILE" | grep -v '^\s*$' | awk '{print $1}')
+  if [[ -n "$suppl" ]]; then
+    echo "$suppl" >> ids.txt
+    log "Appended $(echo "$suppl" | wc -l) supplemental UPID(s) from supplemental_upids.txt"
+  fi
+fi
 
 log "Creating mapped.db..."
 # Create mapped.db, recording unmapped proteomes and assembly→upid reverse mapping.

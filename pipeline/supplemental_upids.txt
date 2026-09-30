@@ -1,0 +1,10 @@
+# Supplemental proteome IDs not covered by the PIR reference lists (RPG75/VIRUS95).
+# These are added to ids.txt in step 1 before assembly mapping, so they flow through
+# the full pipeline (fallback included). If UniProt has no nucleotide accessions for
+# a UPID listed here, add a matching entry to MANUAL_ACCESSIONS in
+# scripts/fetch_nucleotide_fallback.py.
+#
+# Format: one UPID per line; lines starting with # are ignored.
+
+# Human RSV B — below PIR completeness threshold; genome in NCBI as JF920069.1
+UP000259912  JF920069.1
