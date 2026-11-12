@@ -6,5 +6,28 @@
 #
 # Format: one UPID per line; lines starting with # are ignored.
 
-# Human RSV B — below PIR completeness threshold; genome in NCBI as JF920069.1
+# Human RSV B — PIR representative (rpg-95.txt), but UniProt has no nucleotide xrefs;
+# supplemental entry bypasses xref lookup and fetches directly via JF920069.1.
 UP000259912  JF920069.1
+# Feline Leukemia Virus
+UP000120560  NC_001940.1
+
+# Porcine Circovirus 1 — PIR RefP representative (UP000180335); NC_001792.2 is
+# the canonical reference accession. Supplemental entry fires only if assembly
+# download fails and fallback finds no UniProt nucleotide xrefs.
+UP000180335  NC_001792.2
+
+# Epstein-Barr Virus — PIR RefP representative is AG876 strain (UP000007639).
+# V01555.2 is the B95-8 strain reference sequence; if the AG876 assembly
+# downloads successfully, this fallback accession will not be used. If the
+# output EBV strain matters specifically, verify the accession post-run.
+UP000007639  V01555.2
+
+# Mammalian Orthoreovirus 1 (strain Lang) — PIR RefP representative (UP000007253).
+# Reo1 has 10 dsRNA segments; accessions listed here cover all segments.
+# The RefP assembly may bundle them; these serve as fallback if it does not.
+UP000007253  M24734.1,AF378003.1,AF129820.1,AF461682.1,AF490617.1,AF174382.1,M10260.1,L19774.1,M18389.1,X61586.1
+
+# Squirrel Monkey Retrovirus — PIR representative (UP000007223); NC_001514.1 is
+# the GenBank reference. Supplemental entry fires only if fallback is needed.
+UP000007223  NC_001514.1
