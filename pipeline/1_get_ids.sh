@@ -6,7 +6,8 @@ logstepstart "Starting Step 1: Getting IDs"
 
 mkdir -p "$OUTDIR/genomes"
 
-WHITELIST_FILE="$(dirname "$0")/eukaryotes_whitelist.txt"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WHITELIST_FILE="$SCRIPT_DIR/eukaryotes_whitelist.txt"
 
 INPUT_DATA_DIR="${INPUT_DATA_DIR:-$OUTDIR/input_data}"
 mkdir -p "$INPUT_DATA_DIR"
@@ -15,7 +16,7 @@ cd "$OUTDIR" || exit 1
 
 if [[ "${BUILD:-false}" != "true" ]]; then
   log "SMOKE TEST MODE: skipping RPG/mapping downloads; using supplemental UPIDs only"
-  SUPPL_FILE="$(dirname "$0")/supplemental_upids.txt"
+  SUPPL_FILE="$SCRIPT_DIR/supplemental_upids.txt"
   if [[ -f "$SUPPL_FILE" ]]; then
     grep -v '^\s*#' "$SUPPL_FILE" | grep -v '^\s*$' | awk '{print $1}' > ids.txt
     log "Loaded $(wc -l < ids.txt) UPID(s) from supplemental_upids.txt"
@@ -73,22 +74,40 @@ EOF
     log "Using existing eukaryotes whitelist: $WHITELIST_FILE"
 fi
 
+rpg75_ok=true
 if [[ ! -f "$INPUT_DATA_DIR/rpg-75.txt" ]]; then
   log "Downloading RPG-75 proteome list..."
-  wget -O "$INPUT_DATA_DIR/rpg-75.txt" "${RPG75}"
+  if ! wget -O "$INPUT_DATA_DIR/rpg-75.txt" "${RPG75}" || [[ ! -s "$INPUT_DATA_DIR/rpg-75.txt" ]]; then
+    log "WARNING: RPG-75 download failed or produced empty file"
+    rm -f "$INPUT_DATA_DIR/rpg-75.txt"
+    rpg75_ok=false
+  fi
 else
   log "Using cached RPG-75: $INPUT_DATA_DIR/rpg-75.txt"
 fi
 
+rpg_virus_ok=true
 if [[ ! -f "$INPUT_DATA_DIR/rpg-virus-95.txt" ]]; then
   log "Downloading virus RPG-95 proteome list..."
-  wget -O "$INPUT_DATA_DIR/rpg-virus-95.txt" "${VIRUS95}"
+  if ! wget -O "$INPUT_DATA_DIR/rpg-virus-95.txt" "${VIRUS95}" || [[ ! -s "$INPUT_DATA_DIR/rpg-virus-95.txt" ]]; then
+    log "WARNING: Virus RPG-95 download failed or produced empty file"
+    rm -f "$INPUT_DATA_DIR/rpg-virus-95.txt"
+    rpg_virus_ok=false
+  fi
 else
   log "Using cached RPG-95: $INPUT_DATA_DIR/rpg-virus-95.txt"
 fi
 
 log "Combining proteome files..."
-cat "$INPUT_DATA_DIR/rpg-75.txt" "$INPUT_DATA_DIR/rpg-virus-95.txt" > full_proteomes.txt
+if $rpg75_ok && $rpg_virus_ok; then
+  cat "$INPUT_DATA_DIR/rpg-75.txt" "$INPUT_DATA_DIR/rpg-virus-95.txt" > full_proteomes.txt
+elif [[ -f "$INPUT_DATA_DIR/full_proteomes.txt" && -s "$INPUT_DATA_DIR/full_proteomes.txt" ]]; then
+  log "WARNING: PIR download(s) failed; falling back to cached full_proteomes.txt at $INPUT_DATA_DIR/full_proteomes.txt"
+  cp "$INPUT_DATA_DIR/full_proteomes.txt" full_proteomes.txt
+else
+  log "ERROR: PIR download(s) failed and no cached full_proteomes.txt found in $INPUT_DATA_DIR. Cannot continue."
+  exit 1
+fi
 
 log "Filtering organisms..."
 grep -v "Euk/" full_proteomes.txt > non_eukaryotes.txt
@@ -112,7 +131,7 @@ grep '^>' filtered_proteomes.txt | awk '{ sub(/^>/, ""); print $1 }' > ids.txt
 
 # Append supplemental UPIDs not covered by PIR reference lists
 # Skipped for the base artifact (NO_SUPPLEMENTAL=true).
-SUPPL_FILE="$(dirname "$0")/supplemental_upids.txt"
+SUPPL_FILE="$SCRIPT_DIR/supplemental_upids.txt"
 if [[ "${NO_SUPPLEMENTAL:-false}" == "true" ]]; then
   log "Skipping supplemental UPIDs (NO_SUPPLEMENTAL=true — base artifact)"
 elif [[ -f "$SUPPL_FILE" ]]; then
