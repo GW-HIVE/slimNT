@@ -5,6 +5,7 @@ logs/
 tmp/
 job.txt
 claude-sessions/
+old/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
