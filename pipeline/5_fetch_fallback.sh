@@ -60,7 +60,11 @@ SUPPL_FILE="$(dirname "$0")/supplemental_upids.txt"
 ARGS=("--outdir" "$FALLBACK_DIR" "--log" "$LOG_FILE")
 $has_unmapped && ARGS+=("--upids" "$UNMAPPED")
 $has_asms     && ARGS+=("--assemblies" "$COMBINED_ASMS" "--assembly-map" "$ASM_MAP")
-[[ -f "$SUPPL_FILE" ]] && ARGS+=("--supplemental" "$SUPPL_FILE")
+if [[ "${NO_SUPPLEMENTAL:-false}" == "true" ]]; then
+  log "Skipping supplemental accessions (NO_SUPPLEMENTAL=true — base artifact)"
+elif [[ -f "$SUPPL_FILE" ]]; then
+  ARGS+=("--supplemental" "$SUPPL_FILE")
+fi
 
 log "Running nucleotide fallback script..."
 cd "$OUTDIR" || exit 1
