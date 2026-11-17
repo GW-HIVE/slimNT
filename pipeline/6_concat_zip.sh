@@ -2,7 +2,7 @@
 
 source "$(dirname "$0")/config.sh"
 
-logstepstart "Starting Step 6: Concatenating and Zipping Results"
+logstepstart "Starting Step 6: Concatenating Results"
 
 cd "$OUTDIR" || exit 1
 
@@ -17,7 +17,6 @@ if ls fallback_genomes/*.fna 1>/dev/null 2>&1; then
   cat fallback_genomes/*.fna >> slimNT.fa
 fi
 
-log "Compressing final database..."
-gzip slimNT.fa
+# slimNT.fa is left uncompressed: the next step is makeblastdb, which reads it directly.
 
 logstepend "Step 6 completed successfully"
