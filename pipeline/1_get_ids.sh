@@ -33,12 +33,30 @@ if [[ "${BUILD:-false}" != "true" ]]; then
 fi
 
 MAPPING_FILE="$INPUT_DATA_DIR/mapping.txt"
+MAPPING_MIN_LINES=1000
 if [[ ! -f "$MAPPING_FILE" ]]; then
   log "Downloading mapping file..."
-  wget -qO - 'https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id%2Cgenome_assembly&format=tsv&query=%28*%29' | gzip -d > "$MAPPING_FILE"
+  # Download to a temp file and only cache it once it is complete and plausible;
+  # a failed download must not be cached and silently reused by later runs.
+  set -o pipefail
+  if ! wget -qO - 'https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id%2Cgenome_assembly&format=tsv&query=%28*%29' \
+      | gzip -d > "$MAPPING_FILE.part"; then
+    rm -f "$MAPPING_FILE.part"
+    log "ERROR: UniProt mapping download failed. Cannot continue."
+    exit 1
+  fi
+  set +o pipefail
+  mv -f "$MAPPING_FILE.part" "$MAPPING_FILE"
 else
   log "Using cached mapping file: $MAPPING_FILE"
 fi
+mapping_lines=$(wc -l < "$MAPPING_FILE")
+if (( mapping_lines < MAPPING_MIN_LINES )); then
+  log "ERROR: $MAPPING_FILE has only $mapping_lines line(s); expected over a million."
+  log "       Delete it and rerun to download it again."
+  exit 1
+fi
+log "Mapping file: $mapping_lines lines"
 
 log "Creating whitelist of eukaryotes to include..."
 if [ ! -f "$WHITELIST_FILE" ]; then
@@ -129,6 +147,16 @@ cat non_eukaryotes.txt whitelisted_eukaryotes.txt > filtered_proteomes.txt
 # Extract IDs from filtered proteomes
 grep '^>' filtered_proteomes.txt | awk '{ sub(/^>/, ""); print $1 }' > ids.txt
 
+# Check before supplemental UPIDs are appended, so they can't mask an empty
+# PIR selection.
+pir_count=$(wc -l < ids.txt)
+if (( pir_count == 0 )); then
+  log "ERROR: no proteome IDs were selected from the PIR lists."
+  log "       Check $INPUT_DATA_DIR/rpg-*.txt and the filtering above. Cannot continue."
+  exit 1
+fi
+log "Selected $pir_count proteome ID(s) from PIR"
+
 # Append supplemental UPIDs not covered by PIR reference lists
 # Skipped for the base artifact (NO_SUPPLEMENTAL=true).
 SUPPL_FILE="$SCRIPT_DIR/supplemental_upids.txt"
@@ -142,19 +170,29 @@ elif [[ -f "$SUPPL_FILE" ]]; then
   fi
 fi
 
+id_count=$(wc -l < ids.txt)
+
 log "Creating mapped.db..."
 # Create mapped.db, recording unmapped proteomes and assembly→upid reverse mapping.
 # Uses $4 explicitly (upid, organism, organism_id, genome_assembly) rather than $NF
 # to avoid picking up organism_id when the genome_assembly field is empty/absent.
-awk -F'\t' '
-  NR==FNR { seen[$1] = 0; next }
+#
+# All three outputs are truncated first: awk only opens a file when it writes to
+# it, so without this a rerun could append to (or leave behind) a previous run's
+# list. The first file is identified by FILENAME rather than NR==FNR, which
+# would treat the whole mapping file as the ID list if ids.txt were empty.
+: > mapped.db
+: > assembly_to_upid.txt
+: > unmapped_proteomes.txt
+awk -F'\t' -v IDS="ids.txt" '
+  FILENAME == IDS { if ($1 != "") seen[$1] = 0; next }
   $1 in seen {
     seen[$1] = 1
     if ($4 != "") {
-      print $4 > "mapped.db"
-      print $4 "\t" $1 > "assembly_to_upid.txt"
+      print $4 >> "mapped.db"
+      print $4 "\t" $1 >> "assembly_to_upid.txt"
     } else {
-      print $1 > "unmapped_proteomes.txt"
+      print $1 >> "unmapped_proteomes.txt"
     }
   }
   END {
@@ -163,7 +201,12 @@ awk -F'\t' '
   }
 ' ids.txt "$MAPPING_FILE"
 
-unmapped_count=$(wc -l < "unmapped_proteomes.txt" 2>/dev/null || echo 0)
+unmapped_count=$(wc -l < "unmapped_proteomes.txt")
+log "$(wc -l < mapped.db) proteome(s) mapped to a genome assembly (mapped.db)"
 log "$unmapped_count proteome(s) with no genome assembly written to unmapped_proteomes.txt"
+if (( unmapped_count > id_count )); then
+  log "ERROR: more unmapped proteomes ($unmapped_count) than selected IDs ($id_count). Cannot continue."
+  exit 1
+fi
 
 logstepend "Step 1 completed successfully"
