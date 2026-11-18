@@ -13,6 +13,11 @@ if [ -n "$BACKUP_DIR" ]; then
   log "Using backup directory: $BACKUP_DIR"
 fi
 
+# Failure lists describe this run only; stale entries from earlier runs would
+# otherwise send already-recovered assemblies to later steps.
+: > "$LOGDIR/2_failed_downloads.txt"
+: > "$LOGDIR/2_extraction_failed.txt"
+
 log "Beginning genome downloads..."
 total_genomes=$(wc -l < "../mapped.db")
 current=0
@@ -26,46 +31,29 @@ exec 1>"$LOGDIR/2_download_progress.log" 2>&1
 
 # Read mapped.db and download genomes
 while IFS= read -r genome_id; do
-  ((current++))
+  current=$((current + 1))
   genome_id=$(echo "$genome_id" | tr -d '[:space:]')  # Remove any whitespace
+  [ -z "$genome_id" ] && continue
 
   log "Processing genome $current/$total_genomes: $genome_id"
 
   if [ -f "${genome_id}.zip" ]; then
     log "File already exists for ${genome_id}, skipping"
     continue
-  fi 
+  fi
 
-  # Try to copy from backup directory first is specified
+  # Try to copy from backup directory first if specified
   if [ -n "$BACKUP_DIR" ] && [ -f "$BACKUP_DIR/genomes/${genome_id}.zip" ]; then
     log "Copying ${genome_id}.zip from backup directory"
     cp "$BACKUP_DIR/genomes/${genome_id}.zip" .
-    ((copied_from_backup++))
+    copied_from_backup=$((copied_from_backup + 1))
     continue
   fi
 
-  for attempt in {1..3}; do
-    log "Download attempt $attempt for $genome_id"
-
-    if curl -f -OJX GET "https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/${genome_id}/download?include_annotation_type=GENOME_FASTA&filename=${genome_id}.zip" -H "Accept: application/zip" 2>&1; then
-      if [ -f "${genome_id}.zip" ] && [ -s "${genome_id}.zip" ]; then
-          log "Successfully downloaded ${genome_id}.zip"
-          break
-      else
-          log "Download appeared successful but file is missing or empty: ${genome_id}"
-          rm -f "${genome_id}.zip"
-      fi
-    else
-      log "Attempt $attempt failed, retrying in $((2**attempt * 50)) seconds..."
-      sleep $((2**attempt * 50))
-      if [ $attempt -eq 3 ]; then
-          log "Error: Failed all download attempts for: ${genome_id}"
-          echo "${genome_id}" >> "$LOGDIR/2_failed_downloads.txt"
-          ((failed_downloads++))
-          continue 2
-      fi
-    fi
-  done
+  if ! download_genome_zip "$genome_id"; then
+    echo "${genome_id}" >> "$LOGDIR/2_failed_downloads.txt"
+    failed_downloads=$((failed_downloads + 1))
+  fi
 
   # Progress update every 100 genomes
   if ((current % 100 == 0)); then
@@ -106,7 +94,7 @@ if ls *.zip 1> /dev/null 2>&1; then
         fi
 
         log "Extracting: $zip_file"
-        if ! unzip -p "$zip_file" "*.fna" > "${base_name}.fna"; then
+        if ! extract_fna "$zip_file"; then
             log "Error extracting file: $zip_file"
             echo "${base_name}" >> "$LOGDIR/2_extraction_failed.txt"
             continue
@@ -126,8 +114,8 @@ fi
 
 log "Extracting phase complete."
 log "Processing empty files..."
-find . -name "*.fna" -size 0 > empty_list.txt
+find . -maxdepth 1 -name "*.fna" -size 0 > empty_list.txt
 sed -i 's/^\.\///;s/\.fna$//' empty_list.txt
-find . -name "*.fna" -size 0 -delete
+find . -maxdepth 1 -name "*.fna" -size 0 -delete
 
 logstepend "Step 2 completed with $failed_downloads failed downloads"

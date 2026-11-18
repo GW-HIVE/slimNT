@@ -6,6 +6,11 @@ logstepstart "Starting Step 4: Getting Alternate Genomes"
 
 cd "$OUTDIR/genomes" || exit 1
 
+# Failure lists describe this run only.
+: > "$LOGDIR/4_failed_downloads.txt"
+: > "$LOGDIR/4_extraction_failed.txt"
+: > empty_list2.txt
+
 # Only proceed if alt_ids.txt exists and is not empty
 if [ -s alt_ids.txt ]; then
   log "Processing alternate genomes from alt_ids.txt..."
@@ -19,8 +24,9 @@ if [ -s alt_ids.txt ]; then
   exec 1>"$LOGDIR/4_download_progress.log" 2>&1
 
   while IFS= read -r i; do
-    ((current++))
+    current=$((current + 1))
     i=$(echo "$i" | tr -d '[:space:]')
+    [ -z "$i" ] && continue
 
     log "Processing alternate genome $current/$total_alts: $i"
 
@@ -30,13 +36,11 @@ if [ -s alt_ids.txt ]; then
       continue
     fi
 
-    url="https://api.ncbi.nlm.nih.gov/datasets/v2alpha/genome/accession/$i/download?include_annotation_type=CDS_FASTA&filename=$i.zip"
-
-    if ! curl -f -OJX GET "$url" -H "Accept: application/zip" 2>&1; then
-      log "Failed to download: $i"
+    # GENOME_FASTA, same as step 2: alternates must contribute whole genomes,
+    # not CDS-only sequences.
+    if ! download_genome_zip "$i"; then
       echo "$i" >> "$LOGDIR/4_failed_downloads.txt"
-      ((failed_downloads++))
-      continue
+      failed_downloads=$((failed_downloads + 1))
     fi
   done < "alt_ids.txt"
 
@@ -56,7 +60,7 @@ if [ -s alt_ids.txt ]; then
 
     for zip_file in *.zip; do
       genome_id="${zip_file%.zip}"
-      
+
       # Skip extraction if the FNA file already exists and isn't empty
       if [ -f "${genome_id}.fna" ] && [ -s "${genome_id}.fna" ]; then
         log "FNA file already exists for ${genome_id}, skipping extraction"
@@ -64,9 +68,9 @@ if [ -s alt_ids.txt ]; then
       fi
 
       log "Extracting: $zip_file"
-      if ! unzip -p "$zip_file" "*.fna" > "${zip_file%.zip}.fna"; then
+      if ! extract_fna "$zip_file"; then
         log "Error extracting file: $zip_file"
-        echo "${zip_file%.zip}" >> "$LOGDIR/4_extraction_failed.txt"
+        echo "$genome_id" >> "$LOGDIR/4_extraction_failed.txt"
         continue
       fi
     done
@@ -81,11 +85,11 @@ if [ -s alt_ids.txt ]; then
 
   log "Processing empty files..."
   # Process empty files
-  find . -name "*.fna" -size 0 > empty_list2.txt
+  find . -maxdepth 1 -name "*.fna" -size 0 > empty_list2.txt
   sed -i 's/^\.\///;s/\.fna$//' empty_list2.txt
-  find . -name "*.fna" -size 0 -delete
+  find . -maxdepth 1 -name "*.fna" -size 0 -delete
 
-else 
+else
   log "No alternate genomes to process (alt_ids.txt is empty or missing)"
 fi
 
