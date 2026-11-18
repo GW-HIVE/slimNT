@@ -23,8 +23,10 @@ Output:
 """
 
 import argparse
+import fcntl
 import json
 import os
+import signal
 import sys
 import time
 import urllib.error
@@ -259,6 +261,10 @@ def main() -> None:
                              "are added to the manual accession lookup")
     parser.add_argument("--delay", type=float, default=None,
                         help="Override inter-request delay in seconds")
+    parser.add_argument("--max-upids", type=int, default=5000, metavar="N",
+                        help="Refuse to run if more than N proteome IDs are queued "
+                             "(default: 5000; 0 disables the check). A normal build "
+                             "queues a few hundred.")
     args = parser.parse_args()
 
     if not args.upids and not args.assemblies:
@@ -303,20 +309,45 @@ def main() -> None:
     if not upids:
         sys.exit("No valid proteome IDs to process.")
 
+    if args.max_upids and len(upids) > args.max_upids:
+        sys.exit(f"Refusing to process {len(upids)} proteome IDs (limit {args.max_upids}). "
+                 f"A normal build queues a few hundred; check the input lists, or "
+                 f"raise --max-upids if this is intended.")
+
+    # One run per output directory at a time. A second run would interleave
+    # writes into the same directory and log.
+    lock_fh = open(str(outdir / ".fallback.lock"), "w")
+    try:
+        fcntl.flock(lock_fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        sys.exit(f"Another fetch_nucleotide_fallback run holds the lock on {outdir}; "
+                 f"check for a running process (pgrep -af fetch_nucleotide_fallback).")
+
+    # Turn `kill <pid>` into SystemExit so the session_end entry below is written.
+    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(f"Received signal {signum}"))
+
     print(f"Processing {len(upids)} proteome IDs → {outdir}", file=sys.stderr)
     print(f"Logging to {args.log}", file=sys.stderr)
 
     recovered = 0
+    processed = 0
+    status = "interrupted"
     with open(args.log, "a") as log_fh:
         log_event(log_fh, event="session_start", total_upids=len(upids),
-                  outdir=str(outdir))
-        for i, upid in enumerate(upids, 1):
-            print(f"  [{i}/{len(upids)}] {upid}", file=sys.stderr)
-            if recover_proteome(upid, outdir, log_fh, manual_accessions):
-                recovered += 1
-        log_event(log_fh, event="session_end",
-                  total=len(upids), recovered=recovered,
-                  failed=len(upids) - recovered)
+                  outdir=str(outdir), pid=os.getpid())
+        try:
+            for i, upid in enumerate(upids, 1):
+                print(f"  [{i}/{len(upids)}] {upid}", file=sys.stderr)
+                if recover_proteome(upid, outdir, log_fh, manual_accessions):
+                    recovered += 1
+                processed = i
+            status = "complete"
+        finally:
+            # Always close the session in the log, so an interrupted run is
+            # visible as such rather than looking like it is still going.
+            log_event(log_fh, event="session_end", status=status,
+                      total=len(upids), processed=processed, recovered=recovered,
+                      failed=processed - recovered)
 
     print(f"\nDone: {recovered}/{len(upids)} recovered. "
           f"{len(upids) - recovered} logged for investigation → {args.log}",
