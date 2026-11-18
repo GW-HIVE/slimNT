@@ -1,89 +1,130 @@
 # slimNT
 
-slimNT has been developed to provide a curated, streamlined version of the NT database. Metagenomic analysis can be difficult and time consuming when querying against the 368001 genomes in NT, and the necessary indexing step is resource heavy; both time and computationally. slimNT aims to ##solve## that problem by strategically sub setting the NT database to create a compact, user-defined database that is tailored to specific needs.
+slimNT has been developed to provide a curated, streamlined version of the NT database. Metagenomic analysis can be difficult and time consuming when querying against the 368001 genomes in NT, and the necessary indexing step is resource heavy; both time and computationally. slimNT aims to solve that problem by strategically sub setting the NT database to create a compact, user-defined database that is tailored to specific needs.
 
 The slimNT database is derived from Representative Proteome (RPs) and Reference Proteome Groups (RPGs) provided by [Protein Information Resource (PIR)](https://proteininformationresource.org/rps/). Reference proteomes and viral reference proteomes can be selected based on a desired cutoff thresholds. Selecting a higher cutoff value will create a larger, more robust database that will lend to increased accuracy at the expense of computation time. Conversely, selecting a lower threshold will result in a database that can be queried more quickly, but may only identify more distantly related sequences.
 
-To ensure a portable, reproducible workflow, a nextflow pipeline was developed to aggregate and build the slimNT database. Detailed instructions to install nextflow can be found here https://www.nextflow.io/docs/latest/index.html. 
+The build is a set of bash scripts (with a Python fallback helper) driven by `run_pipeline.sh`. The original Nextflow implementation is kept in `legacy/` for reference only.
 
 ## Contact Us
 To contact us about any questions or feedback, please email us at mazumder_lab@gwu.edu
 
 ## Data Collection
 
-A list of non-viral proteome ids are generated from PIR. Cut-off values of [(75%)](https://proteininformationresource.org/rps/data/current/75/rpg-75.txt), [(55%)](https://proteininformationresource.org/rps/data/current/55/rpg-55.txt), [(35%)](https://proteininformationresource.org/rps/data/current/35/rpg-35.txt), and [(15%)](https://proteininformationresource.org/rps/data/current/15/rpg-15.txt). These options will result in 18614, 11895, 6072, and 1989 RPGs respectively. 
+A list of non-viral proteome ids are generated from PIR. Cut-off values of [(75%)](https://proteininformationresource.org/rps/data/current/75/rpg-75.txt), [(55%)](https://proteininformationresource.org/rps/data/current/55/rpg-55.txt), [(35%)](https://proteininformationresource.org/rps/data/current/35/rpg-35.txt), and [(15%)](https://proteininformationresource.org/rps/data/current/15/rpg-15.txt). These options will result in 18614, 11895, 6072, and 1989 RPGs respectively.
 
-A list of viral proteome ids are generated similarly. Cut-off values of [(95%)](https://proteininformationresource.org/rps/viruses/data/current/95/rpg-95.txt), [(75%)](https://proteininformationresource.org/rps/viruses/data/current/75/rpg-75.txt), [(55%)](https://proteininformationresource.org/rps/viruses/data/current/55/rpg-55.txt), [(35%)](https://proteininformationresource.org/rps/viruses/data/current/35/rpg-35.txt), [(15%)](https://proteininformationresource.org/rps/viruses/data/current/15/rpg-15.txt), resulting in 15502, 10256, 7971, 6334, 4689 RPGs. 
+A list of viral proteome ids are generated similarly. Cut-off values of [(95%)](https://proteininformationresource.org/rps/viruses/data/current/95/rpg-95.txt), [(75%)](https://proteininformationresource.org/rps/viruses/data/current/75/rpg-75.txt), [(55%)](https://proteininformationresource.org/rps/viruses/data/current/55/rpg-55.txt), [(35%)](https://proteininformationresource.org/rps/viruses/data/current/35/rpg-35.txt), [(15%)](https://proteininformationresource.org/rps/viruses/data/current/15/rpg-15.txt), resulting in 15502, 10256, 7971, 6334, 4689 RPGs.
 
 There is a secondary group of viral RPGs that include polyproteomes that can be found [here](https://proteininformationresource.org/download/rps/rpg_virus_all/current/).
 
-UniProt provides a dataset that can be used to map proteome ids to their associated Genbank or RefSeq IDS [(mapping dataset)](https://www.uniprot.org/proteomes?query=*) . 
+UniProt provides a dataset that can be used to map proteome ids to their associated Genbank or RefSeq IDS [(mapping dataset)](https://www.uniprot.org/proteomes?query=*).
 
-This version of slimNT was designed to be as diverse and robust as possible, and the highest cut-offs were selected (95% cut-off for viral RPGs including polyproteomes, and 75% cut-off for all others.)
+This version of slimNT was designed to be as diverse and robust as possible, and the highest cut-offs were selected (95% cut-off for viral RPGs including polyproteomes, and 75% cut-off for all others). Eukaryotes are excluded except for those listed in `pipeline/eukaryotes_whitelist.txt`. The cut-off URLs are set in `pipeline/config.sh`.
 
 ## Pipeline
 
 ![slimNT Pipeline](./imgs/slimnt_pipeline.png)
 
-### 1) getIds
-The process **getIds** downloads a mapping file from UniProt and parses out proteome ids and genome assembly ids for all selected proteomes. The viral and non-viral representative proteome list files are then downloaded from PIR and the selected representative proteomes are extracted. **getIds** then matches proteome and assembly ids and outputs a mapping file mapped.db. 
+All steps are in `pipeline/` and share helpers from `pipeline/config.sh`. Every step writes into the output directory given to `run_pipeline.sh`, and logs go to `<output>/logs/`.
 
-### 2) getGenomes
-The process **getGenomes** takes the mapped.db output of **getIds** as an input and downloads the assembly summary file from NCBI and extracts the FASTA genome assemblies. **getGenomes**  includes error handling steps, and will identify genomes that were not properly downloaded. This will account for broken urls that cause the download of a particular assembly to fail, but also in the event that the download is successful but the assembly summary file does not include a fasta file. **getGenomes** will output a directory of .fna files as well as a .txt file containing a list of all assembly Ids that were not successfully downloaded. 
+### 1) Get IDs — `1_get_ids.sh`
+Downloads the UniProt proteome→assembly mapping and the PIR RPG lists (or reuses cached copies from `--input-data-dir`). Keeps non-eukaryote representative proteomes plus whitelisted eukaryotes, and appends `supplemental_upids.txt` unless `--no-supplemental` is given. Writes:
+- `ids.txt`: selected proteome IDs
+- `mapped.db`: their genome assembly accessions
+- `assembly_to_upid.txt`: assembly → proteome
+- `unmapped_proteomes.txt`: selected proteomes with no genome assembly in UniProt
 
-### 3) getAlternateIds
-The process **getAlternateIds** downloads an assembly summary file from NCBI and extracts matched RefSeq and Genbank assembly ids. **getAlternateIds** then reads the .txt file of missing .fna files output by **getGenomes** and identifies the alternate assembly. For example, if an error occurs with a RefSeq assembly file, this process will identify the matched Genbank file. **getAlternateIds** outputs a .txt file containing a list of alternate assembly ids.
+The step stops with an error if the mapping file is missing or implausibly small, or if no proteomes are selected from PIR.
 
-**Note:** **getAlternateIds** and the downstream **getAlternateGenomes** will only execute if **getGenomes** identifies genome assemblies that were not successfully downloaded. 
+### 2) Get genomes — `2_get_genomes.sh`
+Downloads each assembly in `mapped.db` from the NCBI Datasets API (`GENOME_FASTA`, 3 attempts with backoff) and extracts the `.fna`. Existing ZIPs/FNAs are reused, so reruns only fetch what is missing. Failures go to `logs/2_failed_downloads.txt` and `logs/2_extraction_failed.txt`; empty FNAs go to `genomes/empty_list.txt`.
 
-### 4) getAlternateGenome
-The process **getAlternateGenomes** takes the .txt output by **getAlternateIds** and repeats the process of **getGenomes**. **getAlternateGenomes** will output any newly downloaded .fna files as well as a second list of genomes that were not successfully downloaded. 
+### 3) Get alternate IDs — `3_get_alternate_ids.sh`
+For assemblies that failed to download or produced an empty FNA, looks up the paired RefSeq/GenBank accession (GCF ↔ GCA) in NCBI's assembly summary. Writes `genomes/alt_map.txt` (original → alternate) and `genomes/alt_ids.txt`.
 
-### 5) concatZip
-The process **concatZip** takes all previously downloaded .fna files as input, concatenates and then compresses the concatenated database file. **concatZip** also takes the two .txt files containing genomes that were not successfully downloaded and combines them into a single list.
+### 4) Get alternate genomes — `4_get_alternate_genomes.sh`
+Downloads and extracts the alternates from step 3, the same way as step 2.
 
-#### Note:
-The pipeline has been updated to include _version control_. These scripts can be found in the folder [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/version_and_separate_compression) under the pipeline folder in this GitHub. The scripts have also been updated to have the capability to compress the database _separately_ from the rest of the pipeline to improve efficiency. This script is step #6, **6_compress_files.sh**. Those updated scripts will be found in the folder under 'version_and_separate_compression' under the pipeline folder in this GitHub.
+### 5) Nucleotide fallback — `5_fetch_fallback.sh`
+Builds `fallback_queue.txt`: the unmapped proteomes, plus proteomes whose assembly has no usable FNA under either accession. For each, `scripts/fetch_nucleotide_fallback.py` asks UniProt for the proteome's nucleotide accessions and downloads them with NCBI efetch into `fallback_genomes/<UPID>.fna`. Outcomes are logged to `logs/fallback_retrieval.jsonl`.
 
-# Steps to Run slimNT
-The slimNT scripts can be found in the [Pipeline](https://github.com/GW-HIVE/slimNT/tree/main/pipeline) folder. The original files, no version control, use the code scripts found in the root of the pipeline directory. To use versioned files, the scripts are found in the folder [version_and_separate_compression](https://github.com/GW-HIVE/slimNT/tree/main/pipeline/version_and_separate_compression). Whitelist capabaility (explained below) is embedded in both sets of the code. 
+The step refuses to run if the queue is larger than `FALLBACK_MAX_UPIDS` (default 5000; a normal build queues a few hundred). A larger queue almost always means step 1 went wrong.
+
+### 6) Concatenate — `6_concat_zip.sh`
+Builds `slimNT.fa` from an explicit manifest: one FNA per assembly in `mapped.db` (or its alternate), plus the fallback FNAs for the UPIDs in `fallback_queue.txt`. Any other `.fna` files in `genomes/` or `fallback_genomes/` are reported and left out. Fallback records whose sequence ID already appears in an included genome, or earlier in the fallback set, are dropped (listed in `logs/6_dropped_fallback_records.txt`). The output is uncompressed, ready for `makeblastdb`.
+
+# Running slimNT
 
 ## Set up your environment
 
 Clone the repository and ensure the following are available on your `PATH`:
 
-- `bash` (4.0+)
-- `python3`
+- `bash` (4.0+) and GNU coreutils/findutils (`xargs -d`, `find -printf`), `flock`
+- `python3` (3.6 or newer; the scripts avoid newer syntax so they run on older HPC images)
 - `wget`, `curl`
 - `gzip`, `unzip`
 
-You will need a destination directory with at least **500 GB** of free space for the output. The pipeline creates that directory (and all logs inside it) automatically.
+Optionally set `NCBI_API_KEY` to raise NCBI's efetch rate limit in step 5.
 
-## Run the Pipeline
+A full build needs at least **500 GB** free in the output directory. The pipeline creates that directory (and its logs) automatically.
 
-```bash
-bash run_pipeline.sh -o /path/to/output
-```
+## Run the pipeline
 
-Optional: provide a local backup directory of previously downloaded genome ZIPs to avoid re-downloading:
+Full build:
 
 ```bash
-bash run_pipeline.sh -o /path/to/output --backup-dir /path/to/backup
+bash run_pipeline.sh -o /path/to/output --build
 ```
 
-The pipeline validates write access and available disk space before starting, then runs all six steps in sequence. Progress is written to stdout; detailed per-step logs are written to `/path/to/output/logs/`.
+Without `--build`, the pipeline runs a **smoke test**: it skips the PIR/UniProt downloads and steps 2–4, and only processes the UPIDs in `pipeline/supplemental_upids.txt` (~5 GB). Use it to check the environment and the fallback path end to end. It does not produce a usable database.
 
-Outputs:
-- **`/path/to/output/slimNT.fa`** — concatenated genome FASTA
-- **`/path/to/output/missing_fna.txt`** — assembly IDs that could not be downloaded
-- **`/path/to/output/logs/fallback_retrieval.jsonl`** — structured log of nucleotide fallback attempts
+Options:
 
-## White List Capability
-The pipeline has the capability to take in a white list file of wanted additional organisms. This is is implemented and performed in the file for step 1, **1_get_ids.sh**. 
+| Option | Purpose |
+|---|---|
+| `--build` | Full production build |
+| `--input-data-dir DIR` | Reuse cached `rpg-75.txt`, `rpg-virus-95.txt` and `mapping.txt` instead of downloading them (default: `<output>/input_data`) |
+| `--no-supplemental` | Leave out `supplemental_upids.txt` (used for the "base" artifact) |
+| `--backup-dir DIR` | Copy genome ZIP/FNA files from `DIR/genomes/` when present instead of downloading |
+| `-h`, `--help` | Show usage |
 
-- To create the white list, enter the names of the organisms of interest in a .txt file. They should be in your slimNT directory you have created. Each name should be its own row, no commas or semi-colons, and no spaces after the name.
-   * The names should be the Organism name as it is found on UniProt. For example, if you want UP000000625 the name should be Escherichia coli (strain K12)
-- In line 16 in the script **1_get_ids.sh**, make sure that the name of your file is entered here and associated with the variable _WHITELIST_FILE_.
-- If a whitelist file was not given, a default list is there beginning at line 17. This default list can be updated as well.
-- If you create a new file, make sure the name of the text file matches would is in the code when it is being called. Right now it is listed as _eukaryotes_whitelist.txt_.
+Only one run can use a given output directory at a time. A second `run_pipeline.sh` on the same directory exits immediately.
 
+Builds take days. Run detached and follow the progress:
+
+```bash
+nohup bash run_pipeline.sh -o /path/to/output --build > build.log 2>&1 &
+tail -f build.log
+```
+
+All steps are safe to rerun: downloaded ZIPs, extracted FNAs and fallback FNAs are reused, and per-run lists and logs are regenerated.
+
+## Outputs
+
+- **`slimNT.fa`**: concatenated genome FASTA
+- **`slimNT.manifest.txt`**: the exact files that went into `slimNT.fa`, in order
+- **`missing_fna.txt`**: assemblies with no FNA under either accession (step 5 tries these through the fallback)
+- **`fallback_queue.txt`**: proteomes sent to the nucleotide fallback
+- **`logs/fallback_retrieval.jsonl`**: one JSON object per fallback event; each run starts with `session_start` (including the queue size) and ends with `session_end`
+
+## Choosing organisms
+
+### Eukaryote whitelist
+Eukaryotes are excluded unless their proteome ID (UPID) is listed in `pipeline/eukaryotes_whitelist.txt`: one UPID per line, with an optional `# organism name` comment. Matching is by UPID, not organism name. Find UPIDs on [UniProt Proteomes](https://www.uniprot.org/proteomes).
+
+### Supplemental proteomes
+`pipeline/supplemental_upids.txt` adds proteomes that the PIR lists miss, or whose assembly path is unreliable. Format:
+
+```
+UP000120560  NC_001940.1
+UP000007253  M24734.1,AF378003.1
+```
+
+Column 1 is added to the build. Column 2 (optional, comma-separated) gives NCBI nucleotide accessions for step 5 to use when UniProt has none. For proteomes that come through PIR normally but have no UniProt nucleotide links, add accessions to `MANUAL_ACCESSIONS` in `scripts/fetch_nucleotide_fallback.py` instead.
+
+## Helper scripts
+
+- `scripts/verify_downloads.sh OUTDIR`: checks genome and fallback completeness before a rebuild
+- `scripts/collect_failures.py`: gathers all failure logs into a curator-ready TSV
+- `scripts/check_proteome_mapping.py`: queries UniProt and NCBI for a list of UPIDs
+- `scripts/setup_artifacts.sh`: one-time migration used to split the v3.1 output into `base/` and `annotated/` artifacts; not needed for new builds
