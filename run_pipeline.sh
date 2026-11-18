@@ -1,5 +1,25 @@
 #!/bin/bash
 
+usage() {
+  cat <<'EOF'
+Usage: run_pipeline.sh -o /path/to/output [options]
+
+  -o, --output DIR        Output directory (required; created if missing)
+  --build                 Full production build (downloads PIR/UniProt data and
+                          all genomes; needs ~500 GB). Without it, runs a quick
+                          smoke test on the supplemental UPIDs only (~5 GB).
+  --input-data-dir DIR    Reuse cached rpg-75.txt / rpg-virus-95.txt / mapping.txt
+                          (default: OUTPUT/input_data)
+  --no-supplemental       Leave out pipeline/supplemental_upids.txt (base artifact)
+  --backup-dir DIR        Copy genome ZIP/FNA files from DIR/genomes when present
+  -h, --help              Show this help
+
+Environment:
+  NCBI_API_KEY            Optional; raises the NCBI efetch rate limit in step 5
+  FALLBACK_MAX_UPIDS      Step 5 refuses larger fallback queues (default 5000)
+EOF
+}
+
 OUTDIR=""
 BACKUP_DIR=""
 INPUT_DATA_DIR=""
@@ -12,13 +32,15 @@ while [[ "$#" -gt 0 ]]; do
     --input-data-dir) INPUT_DATA_DIR="$2"; shift ;;
     --build) BUILD=true ;;
     --no-supplemental) NO_SUPPLEMENTAL=true ;;
-    *) echo "Unknown argument: $1" >&2; exit 1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage >&2; exit 1 ;;
   esac
   shift
 done
 
 if [[ -z "$OUTDIR" ]]; then
-  echo "ERROR: Output directory is required. Usage: run_pipeline.sh -o /path/to/output [--build] [--backup-dir /path]" >&2
+  echo "ERROR: Output directory is required." >&2
+  usage >&2
   exit 1
 fi
 
@@ -28,6 +50,14 @@ mkdir -p "$OUTDIR" || { echo "ERROR: Cannot create output directory: $OUTDIR" >&
 
 if [[ ! -w "$OUTDIR" ]]; then
   echo "ERROR: Output directory is not writable: $OUTDIR" >&2
+  exit 1
+fi
+
+# Only one pipeline run per output directory. Two runs sharing a directory
+# interleave downloads and logs and can put unrelated files into the build.
+exec 9>"$OUTDIR/.pipeline.lock"
+if ! flock -n 9; then
+  echo "ERROR: another run_pipeline.sh is already using $OUTDIR" >&2
   exit 1
 fi
 
@@ -50,24 +80,22 @@ cd "$(dirname "$0")" || exit 1
 
 mkdir -p "$OUTDIR/logs"
 
-chmod +x run_pipeline.sh
-chmod +x ./pipeline/*.sh
-
 echo "Pipeline started at $(date)"
 echo "Output directory: $OUTDIR"
 echo "Available disk: ${avail_gb} GB"
-echo "Mode: $([[ "$BUILD" == "true" ]] && echo "FULL BUILD" || echo "SMOKE TEST (supplemental UPIDs only)")"
+echo "Mode: $([[ "$BUILD" == "true" ]] && echo "FULL BUILD" || echo "SMOKE TEST (supplemental UPIDs only; use --build for a real build)")"
 echo "Using backup directory: ${BACKUP_DIR:-None}"
 echo "Input data dir: ${INPUT_DATA_DIR:-(default: \$OUTDIR/input_data)}"
 echo "Supplemental UPIDs: $([[ "$NO_SUPPLEMENTAL" == "true" ]] && echo "DISABLED (base artifact)" || echo "enabled")"
+echo "NCBI API key: $([[ -n "${NCBI_API_KEY:-}" ]] && echo "set" || echo "not set (slower efetch rate limit)")"
 
-./pipeline/1_get_ids.sh
+bash ./pipeline/1_get_ids.sh
 if [[ "$BUILD" == "true" ]]; then
-  ./pipeline/2_get_genomes.sh
-  ./pipeline/3_get_alternate_ids.sh
-  ./pipeline/4_get_alternate_genomes.sh
+  bash ./pipeline/2_get_genomes.sh
+  bash ./pipeline/3_get_alternate_ids.sh
+  bash ./pipeline/4_get_alternate_genomes.sh
 fi
-./pipeline/5_fetch_fallback.sh
-./pipeline/6_concat_zip.sh
+bash ./pipeline/5_fetch_fallback.sh
+bash ./pipeline/6_concat_zip.sh
 
 echo "Pipeline completed at $(date)"
