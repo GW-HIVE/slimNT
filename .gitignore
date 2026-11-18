@@ -6,6 +6,7 @@ tmp/
 job.txt
 claude-sessions/
 old/
+pipeline/version_and_separate_compression/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
