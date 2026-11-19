@@ -51,7 +51,7 @@ Builds `fallback_queue.txt`: the unmapped proteomes, plus proteomes whose assemb
 The step refuses to run if the queue is larger than `FALLBACK_MAX_UPIDS` (default 5000; a normal build queues a few hundred). A larger queue almost always means step 1 went wrong.
 
 ### 6) Concatenate — `6_concat_zip.sh`
-Builds `slimNT.fa` from an explicit manifest: one FNA per assembly in `mapped.db` (or its alternate), plus the fallback FNAs for the UPIDs in `fallback_queue.txt`. Any other `.fna` files in `genomes/` or `fallback_genomes/` are reported and left out. Fallback records whose sequence ID already appears in an included genome, or earlier in the fallback set, are dropped (listed in `logs/6_dropped_fallback_records.txt`). The output is uncompressed, ready for `makeblastdb`.
+Builds `slimNT.fa` from an explicit manifest: one FNA per assembly in `mapped.db` (or its alternate), plus the fallback FNAs for the UPIDs in `fallback_queue.txt`. Any other `.fna` files in `genomes/` or `fallback_genomes/` are reported and left out. Each sequence ID is written only once, because `makeblastdb -parse_seqids` rejects repeated IDs. Genome FNAs can share a record: a host bacterium's assembly can include a prophage that UniProt also maps to its own phage-only assembly. In that case the first copy in manifest order is kept. Fallback records whose ID already appears in an included genome, or earlier in the fallback set, are also dropped. Every dropped record is listed in `logs/6_dropped_records.txt`. The output is uncompressed, ready for `makeblastdb`.
 
 # Running slimNT
 
